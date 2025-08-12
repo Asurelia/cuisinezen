@@ -5,7 +5,6 @@ import { suggestFoodCategory } from '@/ai/flows/suggest-food-category';
 import { extractMenuFromImage } from '@/ai/flows/extract-menu-from-image';
 import type { ExtractMenuOutput } from '@/ai/schemas/menu-extraction';
 import { categories, type Category } from '@/lib/types';
-import { generateImage } from '@/ai/flows/generate-image-flow';
 
 export async function getCategorySuggestion(foodItemName: string): Promise<Category | null> {
   if (!foodItemName || foodItemName.trim().length < 3) {
@@ -39,15 +38,4 @@ export async function handleExtractMenu(photoDataUri: string): Promise<ExtractMe
     console.error('Error extracting menu from image:', error);
     return null;
   }
-}
-
-export async function handleGenerateImage(prompt: string): Promise<string | null> {
-    if (!prompt) return null;
-    try {
-        const result = await generateImage({prompt});
-        return result.imageUrl;
-    } catch (error) {
-        console.error("Error generating image:", error);
-        return null;
-    }
 }

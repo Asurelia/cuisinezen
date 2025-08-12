@@ -1,10 +1,11 @@
 
 'use client';
 
-import { useEffect, useTransition } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useForm, useFieldArray, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
+import Image from 'next/image';
 import {
   Dialog,
   DialogContent,
@@ -24,10 +25,9 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
-import { Trash2, PlusCircle, Loader2 } from 'lucide-react';
+import { Trash2, PlusCircle, ImagePlus } from 'lucide-react';
 import type { Recipe, Product, Ingredient, Difficulty } from '@/lib/types';
 import { Separator } from './ui/separator';
-import { handleGenerateImage } from '@/lib/actions';
 
 interface RecipeFormDialogProps {
   isOpen: boolean;
@@ -46,6 +46,7 @@ const ingredientSchema = z.object({
 const formSchema = z.object({
   name: z.string().min(2, 'Le nom doit contenir au moins 2 caractères.'),
   description: z.string().optional(),
+  imageUrl: z.string().optional(),
   ingredients: z.array(ingredientSchema).min(1, 'Veuillez ajouter au moins un ingrédient.'),
   preparationTime: z.coerce.number().min(0).optional(),
   cookingTime: z.coerce.number().min(0).optional(),
@@ -53,7 +54,9 @@ const formSchema = z.object({
 });
 
 export function RecipeFormDialog({ isOpen, onOpenChange, onSave, recipe, inventory }: RecipeFormDialogProps) {
-  const [isGeneratingImage, startImageGenerationTransition] = useTransition();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -75,11 +78,15 @@ export function RecipeFormDialog({ isOpen, onOpenChange, onSave, recipe, invento
       form.reset({
         name: recipe.name,
         description: recipe.description,
+        imageUrl: recipe.imageUrl,
         ingredients: recipe.ingredients,
         preparationTime: recipe.preparationTime,
         cookingTime: recipe.cookingTime,
         difficulty: recipe.difficulty,
       });
+      if(recipe.imageUrl) {
+        setImagePreview(recipe.imageUrl);
+      }
     } else {
       form.reset({
         name: '',
@@ -92,30 +99,39 @@ export function RecipeFormDialog({ isOpen, onOpenChange, onSave, recipe, invento
     }
   }, [recipe, form, isOpen]);
 
+  useEffect(() => {
+      if(!isOpen) {
+        setImagePreview(null);
+      }
+  }, [isOpen])
+
+
+  const handleImageChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const result = reader.result as string;
+        form.setValue('imageUrl', result);
+        setImagePreview(result);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
 
   function onSubmit(values: z.infer<typeof formSchema>) {
-      startImageGenerationTransition(async () => {
-        let imageUrl = recipe?.imageUrl;
-        if ((!recipe?.imageUrl && values.name) || (recipe?.name !== values.name)) {
-             const generatedUrl = await handleGenerateImage(values.name);
-             if(generatedUrl) {
-                imageUrl = generatedUrl;
-             }
-        }
-
-        const savedRecipe: Recipe = {
-          id: recipe?.id || new Date().toISOString(),
-          name: values.name,
-          description: values.description || '',
-          imageUrl,
-          ingredients: values.ingredients as Ingredient[], // Cast is safe due to zod schema
-          preparationTime: values.preparationTime,
-          cookingTime: values.cookingTime,
-          difficulty: values.difficulty as Difficulty,
-        };
-        onSave(savedRecipe);
-        onOpenChange(false);
-    });
+    const savedRecipe: Recipe = {
+        id: recipe?.id || new Date().toISOString(),
+        name: values.name,
+        description: values.description || '',
+        imageUrl: values.imageUrl,
+        ingredients: values.ingredients as Ingredient[], // Cast is safe due to zod schema
+        preparationTime: values.preparationTime,
+        cookingTime: values.cookingTime,
+        difficulty: values.difficulty as Difficulty,
+    };
+    onSave(savedRecipe);
+    onOpenChange(false);
   }
 
   return (
@@ -128,16 +144,43 @@ export function RecipeFormDialog({ isOpen, onOpenChange, onSave, recipe, invento
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={form.handleSubmit(onSubmit)} className="flex-grow overflow-y-auto pr-6 pl-1 space-y-6">
-          <div className="space-y-2">
-            <Label htmlFor="name">Nom de la recette</Label>
-            <Input id="name" {...form.register('name')} />
-            {form.formState.errors.name && <p className="text-xs text-red-600">{form.formState.errors.name.message}</p>}
+          <div className="flex gap-4">
+             <div className="w-1/3">
+                <input
+                    type="file"
+                    ref={fileInputRef}
+                    onChange={handleImageChange}
+                    accept="image/*"
+                    className="hidden"
+                />
+                 <button
+                    type="button"
+                    className="relative w-full aspect-square flex-col rounded-md border-2 border-dashed flex items-center justify-center text-muted-foreground hover:border-primary hover:text-primary transition-colors"
+                    onClick={() => fileInputRef.current?.click()}
+                >
+                    {imagePreview ? (
+                    <Image src={imagePreview} alt="Aperçu de la recette" fill className="object-cover rounded-md" />
+                    ) : (
+                    <>
+                        <ImagePlus className="h-8 w-8 mb-1"/>
+                        <span>Photo du plat</span>
+                    </>
+                    )}
+                </button>
+             </div>
+             <div className="w-2/3 space-y-2">
+                <div>
+                    <Label htmlFor="name">Nom de la recette</Label>
+                    <Input id="name" {...form.register('name')} />
+                    {form.formState.errors.name && <p className="text-xs text-red-600">{form.formState.errors.name.message}</p>}
+                </div>
+                <div>
+                    <Label htmlFor="description">Description</Label>
+                    <Textarea id="description" {...form.register('description')} rows={5} />
+                </div>
+             </div>
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="description">Description</Label>
-            <Textarea id="description" {...form.register('description')} />
-          </div>
 
            <div className="grid grid-cols-3 gap-4">
               <div className="space-y-2">
@@ -244,15 +287,8 @@ export function RecipeFormDialog({ isOpen, onOpenChange, onSave, recipe, invento
           <Button type="button" variant="ghost" onClick={() => onOpenChange(false)}>
             Annuler
           </Button>
-          <Button type="submit" onClick={form.handleSubmit(onSubmit)} disabled={isGeneratingImage}>
-             {isGeneratingImage ? (
-                <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    <span>Sauvegarde...</span>
-                </>
-            ) : (
-                recipe ? 'Sauvegarder les changements' : 'Créer la recette'
-            )}
+          <Button type="submit" onClick={form.handleSubmit(onSubmit)}>
+            {recipe ? 'Sauvegarder les changements' : 'Créer la recette'}
           </Button>
         </DialogFooter>
       </DialogContent>
