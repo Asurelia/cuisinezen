@@ -11,7 +11,7 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { ChefHat, Pencil, Trash2 } from 'lucide-react';
+import { ChefHat, Pencil, Trash2, Clock, BarChart3 } from 'lucide-react';
 import type { Recipe } from '@/lib/types';
 import { Separator } from './ui/separator';
 
@@ -20,6 +20,12 @@ interface RecipeCardProps {
   onEdit: () => void;
   onDelete: () => void;
 }
+
+const difficultyMap = {
+  facile: 'Facile',
+  moyen: 'Moyen',
+  difficile: 'Difficile',
+};
 
 export function RecipeCard({ recipe, onEdit, onDelete }: RecipeCardProps) {
   return (
@@ -42,9 +48,27 @@ export function RecipeCard({ recipe, onEdit, onDelete }: RecipeCardProps) {
             {recipe.description}
         </p>
          <Separator className="my-2"/>
-         <div className="flex items-center text-sm text-muted-foreground mt-4">
-            <ChefHat className="h-4 w-4 mr-2 text-primary" />
-            <span>{recipe.ingredients.length} ingrédient(s)</span>
+         <div className="space-y-2 text-sm text-muted-foreground mt-4">
+            <div className="flex items-center">
+                <ChefHat className="h-4 w-4 mr-2 text-primary" />
+                <span>{recipe.ingredients.length} ingrédient(s)</span>
+            </div>
+             {(recipe.preparationTime || recipe.cookingTime) && (
+                <div className="flex items-center">
+                    <Clock className="h-4 w-4 mr-2 text-primary" />
+                    <span>
+                        {recipe.preparationTime && `Préparation: ${recipe.preparationTime}min`}
+                        {recipe.preparationTime && recipe.cookingTime && ' - '}
+                        {recipe.cookingTime && `Cuisson: ${recipe.cookingTime}min`}
+                    </span>
+                </div>
+            )}
+            {recipe.difficulty && (
+                <div className="flex items-center">
+                    <BarChart3 className="h-4 w-4 mr-2 text-primary" />
+                    <span>Difficulté: {difficultyMap[recipe.difficulty]}</span>
+                </div>
+            )}
          </div>
       </CardContent>
        <CardFooter className="bg-muted/50 p-2 grid grid-cols-2 gap-2">

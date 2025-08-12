@@ -1,9 +1,10 @@
 'use client';
 
 import { useState, useRef, useTransition, ChangeEvent, useEffect } from 'react';
+import Link from 'next/link';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { PlusCircle, FileText, Files, FileImage, UtensilsCrossed, BookOpen, Loader2, Salad, Soup, Info, BookHeart } from "lucide-react";
+import { PlusCircle, FileText, Files, FileImage, UtensilsCrossed, BookOpen, Loader2, Info, BookHeart, ExternalLink } from "lucide-react";
 import { handleExtractMenu } from '@/lib/actions';
 import type { ExtractMenuOutput } from '@/ai/schemas/menu-extraction';
 import { useToast } from "@/hooks/use-toast";
@@ -88,6 +89,30 @@ export default function MenuPage() {
   const sortedWeek = extractedMenu?.week.sort((a, b) => {
     return weekDaysOrder.indexOf(a.day) - weekDaysOrder.indexOf(b.day);
   });
+  
+  const renderDish = (meal: {name: string} | undefined, mealType: string) => {
+    if (!meal?.name) return null;
+
+    const recipe = findRecipeForDish(meal.name);
+    return (
+      <div className="flex items-center justify-between group">
+        <div className="flex items-center gap-2">
+            {recipe ? <BookHeart className="h-4 w-4 text-green-600" /> : <Info className="h-4 w-4 text-amber-600" />}
+            <div>
+                <span className="font-medium">{mealType} :</span> {meal.name}
+            </div>
+        </div>
+        {recipe && (
+             <Link href={`/recipes?recipeId=${recipe.id}`} passHref>
+                <Button variant="ghost" size="sm" className="opacity-0 group-hover:opacity-100 transition-opacity">
+                    Voir
+                    <ExternalLink className="h-3 w-3 ml-1.5"/>
+                </Button>
+            </Link>
+        )}
+      </div>
+    );
+  }
 
 
   return (
@@ -165,23 +190,9 @@ export default function MenuPage() {
                             <div key={dayMenu.day}>
                                 <h4 className="font-semibold text-primary">{dayMenu.day}</h4>
                                 <div className="pl-4 mt-1 space-y-1 text-sm">
-                                    {dayMenu.lunch && (
-                                        <div className="flex items-center gap-2">
-                                            {findRecipeForDish(dayMenu.lunch.name) ? <BookHeart className="h-4 w-4 text-green-600" /> : <Info className="h-4 w-4 text-amber-600" />}
-                                            <div>
-                                                <span className="font-medium">Midi :</span> {dayMenu.lunch.name}
-                                            </div>
-                                        </div>
-                                    )}
-                                    {dayMenu.dinner && (
-                                        <div className="flex items-center gap-2">
-                                             {findRecipeForDish(dayMenu.dinner.name) ? <BookHeart className="h-4 w-4 text-green-600" /> : <Info className="h-4 w-4 text-amber-600" />}
-                                            <div>
-                                                <span className="font-medium">Soir :</span> {dayMenu.dinner.name}
-                                            </div>
-                                        </div>
-                                    )}
-                                     {!dayMenu.lunch && !dayMenu.dinner && (
+                                   {renderDish(dayMenu.lunch, 'Midi')}
+                                   {renderDish(dayMenu.dinner, 'Soir')}
+                                   {!dayMenu.lunch && !dayMenu.dinner && (
                                         <p className="text-muted-foreground italic">Aucun plat pour ce jour.</p>
                                     )}
                                 </div>
@@ -202,7 +213,7 @@ export default function MenuPage() {
         </CardContent>
          <CardFooter>
             <p className="text-xs text-muted-foreground">
-                L'icône <BookHeart className="inline-block h-3 w-3 text-green-600" /> indique une recette existante.
+                L'icône <BookHeart className="inline-block h-3 w-3 text-green-600" /> indique une recette existante. Passez la souris pour voir le lien.
             </p>
         </CardFooter>
       </Card>

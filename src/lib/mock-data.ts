@@ -113,6 +113,9 @@ export const mockRecipes: Recipe[] = [
       { productId: '5', quantity: 400, unit: 'g' },
       { productId: '6', quantity: 1, unit: 'piece' },
     ],
+    preparationTime: 5,
+    cookingTime: 15,
+    difficulty: 'facile',
   },
   {
     id: '2',
@@ -121,5 +124,8 @@ export const mockRecipes: Recipe[] = [
     imageUrl: 'https://placehold.co/400x300.png',
     dataAiHint: 'pizza slice',
     ingredients: [{ productId: '4', quantity: 1, unit: 'piece' }],
+    preparationTime: 2,
+    cookingTime: 12,
+    difficulty: 'facile',
   },
 ];

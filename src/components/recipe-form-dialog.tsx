@@ -25,7 +25,7 @@ import {
 } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
 import { Trash2, PlusCircle } from 'lucide-react';
-import type { Recipe, Product, Ingredient } from '@/lib/types';
+import type { Recipe, Product, Ingredient, Difficulty } from '@/lib/types';
 import { Separator } from './ui/separator';
 
 interface RecipeFormDialogProps {
@@ -46,6 +46,9 @@ const formSchema = z.object({
   name: z.string().min(2, 'Le nom doit contenir au moins 2 caractères.'),
   description: z.string().optional(),
   ingredients: z.array(ingredientSchema).min(1, 'Veuillez ajouter au moins un ingrédient.'),
+  preparationTime: z.coerce.number().min(0).optional(),
+  cookingTime: z.coerce.number().min(0).optional(),
+  difficulty: z.enum(['facile', 'moyen', 'difficile']).optional(),
 });
 
 export function RecipeFormDialog({ isOpen, onOpenChange, onSave, recipe, inventory }: RecipeFormDialogProps) {
@@ -55,6 +58,8 @@ export function RecipeFormDialog({ isOpen, onOpenChange, onSave, recipe, invento
       name: '',
       description: '',
       ingredients: [],
+      preparationTime: 0,
+      cookingTime: 0,
     },
   });
 
@@ -69,12 +74,18 @@ export function RecipeFormDialog({ isOpen, onOpenChange, onSave, recipe, invento
         name: recipe.name,
         description: recipe.description,
         ingredients: recipe.ingredients,
+        preparationTime: recipe.preparationTime,
+        cookingTime: recipe.cookingTime,
+        difficulty: recipe.difficulty,
       });
     } else {
       form.reset({
         name: '',
         description: '',
         ingredients: [{ productId: '', quantity: 1, unit: 'piece' }],
+        preparationTime: 0,
+        cookingTime: 0,
+        difficulty: 'facile',
       });
     }
   }, [recipe, form]);
@@ -83,8 +94,12 @@ export function RecipeFormDialog({ isOpen, onOpenChange, onSave, recipe, invento
   function onSubmit(values: z.infer<typeof formSchema>) {
     const savedRecipe: Recipe = {
       id: recipe?.id || new Date().toISOString(),
-      ...values,
+      name: values.name,
+      description: values.description || '',
       ingredients: values.ingredients as Ingredient[], // Cast is safe due to zod schema
+      preparationTime: values.preparationTime,
+      cookingTime: values.cookingTime,
+      difficulty: values.difficulty as Difficulty,
     };
     onSave(savedRecipe);
     onOpenChange(false);
@@ -110,6 +125,36 @@ export function RecipeFormDialog({ isOpen, onOpenChange, onSave, recipe, invento
             <Label htmlFor="description">Description</Label>
             <Textarea id="description" {...form.register('description')} />
           </div>
+
+           <div className="grid grid-cols-3 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="preparationTime">Temps de préparation (min)</Label>
+                <Input id="preparationTime" type="number" {...form.register('preparationTime')} />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="cookingTime">Temps de cuisson (min)</Label>
+                <Input id="cookingTime" type="number" {...form.register('cookingTime')} />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="difficulty">Difficulté</Label>
+                 <Controller
+                      control={form.control}
+                      name="difficulty"
+                      render={({ field }) => (
+                         <Select onValueChange={field.onChange} defaultValue={field.value} value={field.value}>
+                           <SelectTrigger>
+                             <SelectValue placeholder="Choisir une difficulté" />
+                           </SelectTrigger>
+                           <SelectContent>
+                             <SelectItem value="facile">Facile</SelectItem>
+                             <SelectItem value="moyen">Moyen</SelectItem>
+                             <SelectItem value="difficile">Difficile</SelectItem>
+                           </SelectContent>
+                         </Select>
+                      )}
+                    />
+              </div>
+            </div>
 
           <Separator />
           

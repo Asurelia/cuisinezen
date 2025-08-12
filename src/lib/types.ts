@@ -31,6 +31,8 @@ export interface Ingredient {
   unit: 'g' | 'ml' | 'piece';
 }
 
+export type Difficulty = 'facile' | 'moyen' | 'difficile';
+
 export interface Recipe {
   id: string;
   name: string;
@@ -38,4 +40,7 @@ export interface Recipe {
   imageUrl?: string;
   dataAiHint?: string;
   ingredients: Ingredient[];
+  preparationTime?: number; // in minutes
+  cookingTime?: number; // in minutes
+  difficulty?: Difficulty;
 }
