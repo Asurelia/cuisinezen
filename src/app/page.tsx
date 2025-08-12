@@ -1,5 +1,5 @@
-import { InventoryPage } from '@/components/pages/inventory-page';
+import { redirect } from 'next/navigation';
 
 export default function Home() {
-  return <InventoryPage />;
+  redirect('/inventory');
 }
