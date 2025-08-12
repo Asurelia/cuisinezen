@@ -1,3 +1,4 @@
+
 'use client';
 
 import Image from 'next/image';
@@ -81,12 +82,11 @@ export function ProductCard({ product, onDelete }: ProductCardProps) {
     <Card className="flex h-full flex-col overflow-hidden transition-shadow duration-300 hover:shadow-lg">
       <CardHeader className="relative p-0">
         <Image
-          src={product.imageUrl || 'https://placehold.co/400x300.png'}
+          src={product.imageUrl || `https://placehold.co/400x300.png?text=${encodeURIComponent(product.name)}`}
           alt={product.name}
           width={400}
           height={300}
           className="aspect-[4/3] w-full object-cover"
-          data-ai-hint={product.dataAiHint || "food item"}
         />
         <div className="absolute bottom-0 w-full bg-gradient-to-t from-black/80 to-transparent p-4 pt-12">
            <CardTitle className="text-xl font-bold text-white">{product.name}</CardTitle>

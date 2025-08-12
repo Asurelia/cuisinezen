@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect, useCallback, useTransition, useRef } from 'react';
@@ -24,13 +25,13 @@ import {
 import { Label } from '@/components/ui/label';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Calendar as CalendarIcon, Loader2, ScanBarcode, Video, VideoOff } from 'lucide-react';
+import { Calendar as CalendarIcon, Loader2, ScanBarcode, Video, VideoOff, Sparkles } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import type { Product, Category } from '@/lib/types';
 import { categories, categoryNames } from '@/lib/types';
-import { getCategorySuggestion } from '@/lib/actions';
+import { getCategorySuggestion, handleGenerateImage } from '@/lib/actions';
 import { useToast } from '@/hooks/use-toast';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
@@ -49,6 +50,7 @@ const formSchema = z.object({
 
 export function AddProductDialog({ isOpen, onOpenChange, onAddProduct }: AddProductDialogProps) {
   const [isSuggesting, startSuggestionTransition] = useTransition();
+  const [isGeneratingImage, startImageGenerationTransition] = useTransition();
   const [isScannerOpen, setIsScannerOpen] = useState(false);
   const [hasCameraPermission, setHasCameraPermission] = useState<boolean | null>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -133,20 +135,29 @@ export function AddProductDialog({ isOpen, onOpenChange, onAddProduct }: AddProd
     };
   }, [productName, debouncedSuggestCategory]);
 
-  function onSubmit(values: z.infer<typeof formSchema>) {
-    const newProduct: Omit<Product, 'id'> = {
-      name: values.name,
-      category: values.category,
-      batches: [
-        {
-          id: new Date().toISOString(),
-          quantity: values.quantity,
-          expiryDate: values.expiryDate || null,
-        },
-      ],
-    };
-    onAddProduct(newProduct);
-    closeDialog();
+  async function onSubmit(values: z.infer<typeof formSchema>) {
+    let imageUrl: string | undefined;
+    startImageGenerationTransition(async () => {
+        const generatedUrl = await handleGenerateImage(values.name);
+        if(generatedUrl) {
+            imageUrl = generatedUrl;
+        }
+
+        const newProduct: Omit<Product, 'id'> = {
+          name: values.name,
+          category: values.category,
+          imageUrl,
+          batches: [
+            {
+              id: new Date().toISOString(),
+              quantity: values.quantity,
+              expiryDate: values.expiryDate || null,
+            },
+          ],
+        };
+        onAddProduct(newProduct);
+        closeDialog();
+    });
   }
 
   return (
@@ -277,8 +288,15 @@ export function AddProductDialog({ isOpen, onOpenChange, onAddProduct }: AddProd
               <Button type="button" variant="ghost" onClick={closeDialog}>
                 Annuler
               </Button>
-              <Button type="submit" onClick={form.handleSubmit(onSubmit)}>
-                Ajouter le produit
+              <Button type="submit" onClick={form.handleSubmit(onSubmit)} disabled={isGeneratingImage}>
+                {isGeneratingImage ? (
+                    <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        <span>Création en cours...</span>
+                    </>
+                ) : (
+                    "Ajouter le produit"
+                )}
               </Button>
             </DialogFooter>
           </>

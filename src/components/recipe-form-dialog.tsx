@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useTransition } from 'react';
 import { useForm, useFieldArray, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -24,9 +24,10 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
-import { Trash2, PlusCircle } from 'lucide-react';
+import { Trash2, PlusCircle, Loader2 } from 'lucide-react';
 import type { Recipe, Product, Ingredient, Difficulty } from '@/lib/types';
 import { Separator } from './ui/separator';
+import { handleGenerateImage } from '@/lib/actions';
 
 interface RecipeFormDialogProps {
   isOpen: boolean;
@@ -52,6 +53,7 @@ const formSchema = z.object({
 });
 
 export function RecipeFormDialog({ isOpen, onOpenChange, onSave, recipe, inventory }: RecipeFormDialogProps) {
+  const [isGeneratingImage, startImageGenerationTransition] = useTransition();
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -92,17 +94,28 @@ export function RecipeFormDialog({ isOpen, onOpenChange, onSave, recipe, invento
 
 
   function onSubmit(values: z.infer<typeof formSchema>) {
-    const savedRecipe: Recipe = {
-      id: recipe?.id || new Date().toISOString(),
-      name: values.name,
-      description: values.description || '',
-      ingredients: values.ingredients as Ingredient[], // Cast is safe due to zod schema
-      preparationTime: values.preparationTime,
-      cookingTime: values.cookingTime,
-      difficulty: values.difficulty as Difficulty,
-    };
-    onSave(savedRecipe);
-    onOpenChange(false);
+      startImageGenerationTransition(async () => {
+        let imageUrl = recipe?.imageUrl;
+        if ((!recipe?.imageUrl && values.name) || (recipe?.name !== values.name)) {
+             const generatedUrl = await handleGenerateImage(values.name);
+             if(generatedUrl) {
+                imageUrl = generatedUrl;
+             }
+        }
+
+        const savedRecipe: Recipe = {
+          id: recipe?.id || new Date().toISOString(),
+          name: values.name,
+          description: values.description || '',
+          imageUrl,
+          ingredients: values.ingredients as Ingredient[], // Cast is safe due to zod schema
+          preparationTime: values.preparationTime,
+          cookingTime: values.cookingTime,
+          difficulty: values.difficulty as Difficulty,
+        };
+        onSave(savedRecipe);
+        onOpenChange(false);
+    });
   }
 
   return (
@@ -231,8 +244,15 @@ export function RecipeFormDialog({ isOpen, onOpenChange, onSave, recipe, invento
           <Button type="button" variant="ghost" onClick={() => onOpenChange(false)}>
             Annuler
           </Button>
-          <Button type="submit" onClick={form.handleSubmit(onSubmit)}>
-            {recipe ? 'Sauvegarder les changements' : 'Créer la recette'}
+          <Button type="submit" onClick={form.handleSubmit(onSubmit)} disabled={isGeneratingImage}>
+             {isGeneratingImage ? (
+                <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    <span>Sauvegarde...</span>
+                </>
+            ) : (
+                recipe ? 'Sauvegarder les changements' : 'Créer la recette'
+            )}
           </Button>
         </DialogFooter>
       </DialogContent>

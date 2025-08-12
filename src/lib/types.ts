@@ -1,3 +1,4 @@
+
 export type Category = 'frais' | 'surgelé' | 'épicerie' | 'boisson' | 'entretien';
 
 export const categories: Category[] = ['frais', 'surgelé', 'épicerie', 'boisson', 'entretien'];
@@ -17,11 +18,10 @@ export interface Batch {
 }
 
 export interface Product {
-  id: string;
+  id:string;
   name: string;
   category: Category;
   imageUrl?: string;
-  dataAiHint?: string;
   batches: Batch[];
 }
 
@@ -38,7 +38,6 @@ export interface Recipe {
   name: string;
   description: string;
   imageUrl?: string;
-  dataAiHint?: string;
   ingredients: Ingredient[];
   preparationTime?: number; // in minutes
   cookingTime?: number; // in minutes
