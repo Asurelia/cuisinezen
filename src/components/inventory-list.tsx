@@ -1,3 +1,4 @@
+
 'use client';
 
 import {
@@ -29,7 +30,7 @@ const categoryNames: Record<Category, string> = {
 
 interface InventoryListProps {
   inventory: Product[];
-  onDeleteProduct: (productId: string) => void;
+  onDeleteProduct: (product: Product) => void;
 }
 
 export function InventoryList({ inventory, onDeleteProduct }: InventoryListProps) {
@@ -77,7 +78,7 @@ export function InventoryList({ inventory, onDeleteProduct }: InventoryListProps
                   <ProductCard
                     key={product.id}
                     product={product}
-                    onDelete={onDeleteProduct}
+                    onDelete={() => onDeleteProduct(product)}
                   />
                 ))}
               </div>

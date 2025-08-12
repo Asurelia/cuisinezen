@@ -13,6 +13,16 @@ import { useToast } from '@/hooks/use-toast';
 import { ToastAction } from '@/components/ui/toast';
 import { useLocalStorage } from '@/hooks/use-local-storage';
 import { initialRecipes, initialInventory } from '@/lib/initial-data';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 
 const RECIPES_PER_PAGE = 25;
 
@@ -22,8 +32,8 @@ export default function RecipesPage() {
   const [inventory] = useLocalStorage<Product[]>('inventory', initialInventory);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingRecipe, setEditingRecipe] = useState<Recipe | null>(null);
-  const [lastDeleted, setLastDeleted] = useState<Recipe | null>(null);
-  const { toast } = useToast();
+  const [recipeToDelete, setRecipeToDelete] = useState<Recipe | null>(null);
+  const { toast, dismiss } = useToast();
   const [searchQuery, setSearchQuery] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   
@@ -55,25 +65,23 @@ export default function RecipesPage() {
     setEditingRecipe(null);
   };
 
-  const handleUndoDelete = () => {
-    if (lastDeleted) {
-      setRecipes(prev => [lastDeleted, ...prev].sort((a,b) => a.name.localeCompare(b.name)));
-      setLastDeleted(null);
-    }
+  const handleUndoDelete = (recipe: Recipe) => {
+    setRecipes(prev => [...prev, recipe].sort((a,b) => a.name.localeCompare(b.name)));
+    dismiss();
   };
 
-  const handleDeleteRecipe = (recipeId: string) => {
-    const recipeToDelete = recipes.find(r => r.id === recipeId);
+  const confirmDeleteRecipe = () => {
     if (!recipeToDelete) return;
 
-    setLastDeleted(recipeToDelete);
-    setRecipes(recipes.filter(r => r.id !== recipeId));
+    setRecipes(recipes.filter(r => r.id !== recipeToDelete.id));
 
     toast({
       title: 'Recette supprimée',
       description: `${recipeToDelete.name} a été supprimée.`,
-      action: <ToastAction altText="Annuler" onClick={handleUndoDelete}>Annuler</ToastAction>,
+      action: <ToastAction altText="Annuler" onClick={() => handleUndoDelete(recipeToDelete)}>Annuler</ToastAction>,
     });
+    
+    setRecipeToDelete(null);
   };
 
   const filteredRecipes = useMemo(() => {
@@ -138,7 +146,7 @@ export default function RecipesPage() {
                   recipe={recipe}
                   inventory={inventory}
                   onEdit={() => handleOpenDialog(recipe)}
-                  onDelete={() => handleDeleteRecipe(recipe.id)}
+                  onDelete={() => setRecipeToDelete(recipe)}
                 />
               ))}
             </div>
@@ -175,6 +183,20 @@ export default function RecipesPage() {
         recipe={editingRecipe}
         inventory={inventory}
       />
+       <AlertDialog open={!!recipeToDelete} onOpenChange={(open) => !open && setRecipeToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Êtes-vous sûr de vouloir supprimer cette recette ?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Cette action est irréversible. La recette "{recipeToDelete?.name}" sera définitivement supprimée.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setRecipeToDelete(null)}>Annuler</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDeleteRecipe}>Confirmer</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

@@ -20,7 +20,7 @@ import { Separator } from './ui/separator';
 
 interface ProductCardProps {
   product: Product;
-  onDelete: (productId: string) => void;
+  onDelete: () => void;
 }
 
 function getDaysUntilExpiry(expiryDate: Date): number {
@@ -122,7 +122,7 @@ export function ProductCard({ product, onDelete }: ProductCardProps) {
           variant="ghost"
           size="sm"
           className="w-full text-destructive hover:bg-destructive/10 hover:text-destructive"
-          onClick={() => onDelete(product.id)}
+          onClick={onDelete}
         >
           <Trash2 className="mr-2 h-4 w-4" />
           Supprimer

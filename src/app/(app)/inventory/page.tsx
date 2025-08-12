@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState } from 'react';
@@ -10,12 +11,23 @@ import { useToast } from '@/hooks/use-toast';
 import { ToastAction } from '@/components/ui/toast';
 import { useLocalStorage } from '@/hooks/use-local-storage';
 import { initialInventory } from '@/lib/initial-data';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 
 export default function InventoryPage() {
   const [inventory, setInventory] = useLocalStorage<Product[]>('inventory', initialInventory);
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [lastDeleted, setLastDeleted] = useState<{ product: Product; index: number } | null>(null);
-  const { toast } = useToast();
+  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [productToDelete, setProductToDelete] = useState<Product | null>(null);
+  
+  const { toast, dismiss } = useToast();
 
   const handleAddProduct = (newProduct: Omit<Product, 'id'>) => {
     const productWithId: Product = {
@@ -29,31 +41,29 @@ export default function InventoryPage() {
     });
   };
 
-  const handleUndoDelete = () => {
-    if (lastDeleted) {
-      const { product, index } = lastDeleted;
-      const newInventory = [...inventory];
-      newInventory.splice(index, 0, product);
-      setInventory(newInventory);
-      setLastDeleted(null);
-    }
+  const handleUndoDelete = (product: Product, index: number) => {
+    const newInventory = [...inventory];
+    newInventory.splice(index, 0, product);
+    setInventory(newInventory);
+    dismiss();
   };
 
-  const handleDeleteProduct = (productId: string) => {
-    const productIndex = inventory.findIndex(p => p.id === productId);
+  const confirmDeleteProduct = () => {
+    if (!productToDelete) return;
+
+    const productIndex = inventory.findIndex(p => p.id === productToDelete.id);
     if (productIndex === -1) return;
 
-    const productToDelete = inventory[productIndex];
-    setLastDeleted({ product: productToDelete, index: productIndex });
-
-    const newInventory = inventory.filter(p => p.id !== productId);
+    const newInventory = inventory.filter(p => p.id !== productToDelete.id);
     setInventory(newInventory);
 
     toast({
       title: 'Produit supprimé',
       description: `${productToDelete.name} a été retiré.`,
-      action: <ToastAction altText="Annuler" onClick={handleUndoDelete}>Annuler</ToastAction>,
+      action: <ToastAction altText="Annuler" onClick={() => handleUndoDelete(productToDelete, productIndex)}>Annuler</ToastAction>,
     });
+
+    setProductToDelete(null); // Close the dialog
   };
 
   return (
@@ -66,7 +76,7 @@ export default function InventoryPage() {
           </h1>
         </div>
         <div className="ml-auto">
-          <Button onClick={() => setIsDialogOpen(true)}>
+          <Button onClick={() => setIsAddDialogOpen(true)}>
             <PlusCircle className="mr-2 h-4 w-4" />
             Ajouter un produit
           </Button>
@@ -75,14 +85,28 @@ export default function InventoryPage() {
       <main className="flex-1 pt-6">
         <InventoryList
           inventory={inventory}
-          onDeleteProduct={handleDeleteProduct}
+          onDeleteProduct={(product) => setProductToDelete(product)}
         />
       </main>
       <AddProductDialog
-        isOpen={isDialogOpen}
-        onOpenChange={setIsDialogOpen}
+        isOpen={isAddDialogOpen}
+        onOpenChange={setIsAddDialogOpen}
         onAddProduct={handleAddProduct}
       />
+       <AlertDialog open={!!productToDelete} onOpenChange={(open) => !open && setProductToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Êtes-vous sûr de vouloir supprimer ce produit ?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Cette action est irréversible. Le produit "{productToDelete?.name}" sera définitivement supprimé de votre inventaire.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setProductToDelete(null)}>Annuler</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDeleteProduct}>Confirmer</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
