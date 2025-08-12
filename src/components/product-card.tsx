@@ -86,7 +86,7 @@ export function ProductCard({ product, onDelete }: ProductCardProps) {
           width={400}
           height={300}
           className="aspect-[4/3] w-full object-cover"
-          data-ai-hint="food item"
+          data-ai-hint={product.dataAiHint || "food item"}
         />
         <div className="absolute bottom-0 w-full bg-gradient-to-t from-black/80 to-transparent p-4 pt-12">
            <CardTitle className="text-xl font-bold text-white">{product.name}</CardTitle>

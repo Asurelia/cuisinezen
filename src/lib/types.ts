@@ -21,5 +21,6 @@ export interface Product {
   name: string;
   category: Category;
   imageUrl?: string;
+  dataAiHint?: string;
   batches: Batch[];
 }
