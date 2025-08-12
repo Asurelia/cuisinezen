@@ -32,7 +32,7 @@ export default function ShoppingListPage() {
 
   const shoppingList = useMemo(() => {
     if (extractedMenus.length === 0) {
-      return { toBuy: [], sufficient: [] };
+      return { toBuy: {}, sufficient: [] };
     }
 
     const requiredIngredients: Record<string, Omit<RequiredIngredient, 'product'>> = {};
