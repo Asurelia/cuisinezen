@@ -97,13 +97,15 @@ export function RecipeFormDialog({ isOpen, onOpenChange, onSave, recipe, invento
         difficulty: 'facile',
       });
     }
-  }, [recipe, form, isOpen]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [recipe, isOpen]);
 
   useEffect(() => {
       if(!isOpen) {
         setImagePreview(null);
+        form.reset();
       }
-  }, [isOpen])
+  }, [isOpen, form]);
 
 
   const handleImageChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -144,8 +146,9 @@ export function RecipeFormDialog({ isOpen, onOpenChange, onSave, recipe, invento
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={form.handleSubmit(onSubmit)} className="flex-grow overflow-y-auto pr-6 pl-1 space-y-6">
-          <div className="flex gap-4">
-             <div className="w-1/3">
+          
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+             <div className="md:col-span-1">
                 <input
                     type="file"
                     ref={fileInputRef}
@@ -168,7 +171,7 @@ export function RecipeFormDialog({ isOpen, onOpenChange, onSave, recipe, invento
                     )}
                 </button>
              </div>
-             <div className="w-2/3 space-y-2">
+             <div className="md:col-span-2 space-y-4">
                 <div>
                     <Label htmlFor="name">Nom de la recette</Label>
                     <Input id="name" {...form.register('name')} />
@@ -181,7 +184,8 @@ export function RecipeFormDialog({ isOpen, onOpenChange, onSave, recipe, invento
              </div>
           </div>
 
-
+          <Separator />
+            <h3 className="text-lg font-medium">Détails de la recette</h3>
            <div className="grid grid-cols-3 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="preparationTime">Temps de préparation (min)</Label>
@@ -295,3 +299,5 @@ export function RecipeFormDialog({ isOpen, onOpenChange, onSave, recipe, invento
     </Dialog>
   );
 }
+
+    
