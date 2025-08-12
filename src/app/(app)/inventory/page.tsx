@@ -6,12 +6,13 @@ import { Button } from '@/components/ui/button';
 import { AddProductDialog } from '@/components/add-product-dialog';
 import { InventoryList } from '@/components/inventory-list';
 import type { Product } from '@/lib/types';
-import { mockInventory } from '@/lib/mock-data';
 import { useToast } from '@/hooks/use-toast';
 import { ToastAction } from '@/components/ui/toast';
+import { useLocalStorage } from '@/hooks/use-local-storage';
+import { initialInventory } from '@/lib/initial-data';
 
 export default function InventoryPage() {
-  const [inventory, setInventory] = useState<Product[]>(mockInventory);
+  const [inventory, setInventory] = useLocalStorage<Product[]>('inventory', initialInventory);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [lastDeleted, setLastDeleted] = useState<{ product: Product; index: number } | null>(null);
   const { toast } = useToast();

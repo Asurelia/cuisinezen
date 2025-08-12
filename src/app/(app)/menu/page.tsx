@@ -12,23 +12,19 @@ import { useToast } from "@/hooks/use-toast";
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import type { Recipe } from '@/lib/types';
-import { mockRecipes } from '@/lib/mock-data';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
+import { useLocalStorage } from '@/hooks/use-local-storage';
+import { initialRecipes } from '@/lib/initial-data';
 
 
 type ExtractedMenuWithId = ExtractMenuOutput & { id: string; name: string };
 
 export default function MenuPage() {
   const [isExtracting, startExtractionTransition] = useTransition();
-  const [extractedMenus, setExtractedMenus] = useState<ExtractedMenuWithId[]>([]);
-  const [recipes, setRecipes] = useState<Recipe[]>([]);
+  const [extractedMenus, setExtractedMenus] = useLocalStorage<ExtractedMenuWithId[]>('extractedMenus', []);
+  const [recipes] = useLocalStorage<Recipe[]>('recipes', initialRecipes);
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
-
-  useEffect(() => {
-    // In a real app, you'd fetch this data. For now, we use mock data.
-    setRecipes(mockRecipes);
-  }, []);
 
   const findRecipeForDish = (dishName: string): Recipe | undefined => {
     if (!dishName) return undefined;

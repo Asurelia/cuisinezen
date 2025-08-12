@@ -4,18 +4,19 @@ import { useState, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { PlusCircle, Search, ChevronLeft, ChevronRight } from 'lucide-react';
-import type { Recipe } from '@/lib/types';
-import { mockRecipes, mockInventory } from '@/lib/mock-data';
+import type { Recipe, Product } from '@/lib/types';
 import { RecipeCard } from '@/components/recipe-card';
 import { RecipeFormDialog } from '@/components/recipe-form-dialog';
 import { useToast } from '@/hooks/use-toast';
 import { ToastAction } from '@/components/ui/toast';
+import { useLocalStorage } from '@/hooks/use-local-storage';
+import { initialRecipes, initialInventory } from '@/lib/initial-data';
 
 const RECIPES_PER_PAGE = 25;
 
 export default function RecipesPage() {
-  const [recipes, setRecipes] = useState<Recipe[]>(mockRecipes);
-  const [inventory, setInventory] = useState(mockInventory);
+  const [recipes, setRecipes] = useLocalStorage<Recipe[]>('recipes', initialRecipes);
+  const [inventory] = useLocalStorage<Product[]>('inventory', initialInventory);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingRecipe, setEditingRecipe] = useState<Recipe | null>(null);
   const [lastDeleted, setLastDeleted] = useState<Recipe | null>(null);

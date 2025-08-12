@@ -8,7 +8,7 @@ function addDays(date: Date, days: number): Date {
 
 const today = new Date();
 
-export const mockInventory: Product[] = [
+export const initialInventory: Product[] = [
   {
     id: '1',
     name: 'Yaourts Nature',
@@ -102,7 +102,7 @@ export const mockInventory: Product[] = [
   },
 ];
 
-export const mockRecipes: Recipe[] = [
+export const initialRecipes: Recipe[] = [
   {
     id: '1',
     name: 'Pâtes à la sauce tomate',

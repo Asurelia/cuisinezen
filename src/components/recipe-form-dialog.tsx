@@ -27,6 +27,8 @@ import { Label } from '@/components/ui/label';
 import { Trash2, PlusCircle } from 'lucide-react';
 import type { Recipe, Product, Ingredient, Difficulty } from '@/lib/types';
 import { Separator } from './ui/separator';
+import { useLocalStorage } from '@/hooks/use-local-storage';
+import { initialInventory } from '@/lib/initial-data';
 
 interface RecipeFormDialogProps {
   isOpen: boolean;
