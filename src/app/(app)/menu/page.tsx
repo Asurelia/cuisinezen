@@ -197,7 +197,7 @@ export default function MenuPage() {
                     const sortedWeek = menu.week.sort((a, b) => weekDaysOrder.indexOf(a.day) - weekDaysOrder.indexOf(b.day));
                     return (
                        <AccordionItem key={menu.id} value={menu.id} className="rounded-lg border bg-card text-card-foreground shadow-sm">
-                          <AccordionTrigger className="px-4 py-3 text-base font-medium">
+                          <AccordionTrigger className="px-4 py-3 text-base font-medium hover:no-underline">
                             <div className='flex justify-between items-center w-full'>
                                 <span>{menu.name}</span>
                                 <Button variant="ghost" size="icon" className="mr-2 h-7 w-7 text-destructive hover:bg-destructive/10" onClick={(e) => { e.stopPropagation(); handleDeleteMenu(menu.id)}}>
@@ -265,5 +265,3 @@ export default function MenuPage() {
     </div>
   );
 }
-
-    

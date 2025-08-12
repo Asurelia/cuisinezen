@@ -27,8 +27,6 @@ import { Label } from '@/components/ui/label';
 import { Trash2, PlusCircle } from 'lucide-react';
 import type { Recipe, Product, Ingredient, Difficulty } from '@/lib/types';
 import { Separator } from './ui/separator';
-import { useLocalStorage } from '@/hooks/use-local-storage';
-import { initialInventory } from '@/lib/initial-data';
 
 interface RecipeFormDialogProps {
   isOpen: boolean;
@@ -90,7 +88,7 @@ export function RecipeFormDialog({ isOpen, onOpenChange, onSave, recipe, invento
         difficulty: 'facile',
       });
     }
-  }, [recipe, form]);
+  }, [recipe, form, isOpen]);
 
 
   function onSubmit(values: z.infer<typeof formSchema>) {
@@ -187,7 +185,7 @@ export function RecipeFormDialog({ isOpen, onOpenChange, onSave, recipe, invento
 
                  <div className="col-span-2 space-y-1">
                     {index === 0 && <Label>Qté</Label>}
-                    <Input type="number" {...form.register(`ingredients.${index}.quantity`)} placeholder="1" />
+                    <Input type="number" step="any" {...form.register(`ingredients.${index}.quantity`)} placeholder="1" />
                      {form.formState.errors.ingredients?.[index]?.quantity && <p className="text-xs text-red-600">{form.formState.errors.ingredients?.[index]?.quantity?.message}</p>}
                  </div>
 

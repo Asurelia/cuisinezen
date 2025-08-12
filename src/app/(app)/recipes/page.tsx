@@ -1,6 +1,8 @@
+
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { PlusCircle, Search, ChevronLeft, ChevronRight } from 'lucide-react';
@@ -15,6 +17,7 @@ import { initialRecipes, initialInventory } from '@/lib/initial-data';
 const RECIPES_PER_PAGE = 25;
 
 export default function RecipesPage() {
+  const searchParams = useSearchParams();
   const [recipes, setRecipes] = useLocalStorage<Recipe[]>('recipes', initialRecipes);
   const [inventory] = useLocalStorage<Product[]>('inventory', initialInventory);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -23,6 +26,18 @@ export default function RecipesPage() {
   const { toast } = useToast();
   const [searchQuery, setSearchQuery] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
+  
+  useEffect(() => {
+    const recipeId = searchParams.get('recipeId');
+    if (recipeId) {
+      const recipeToEdit = recipes.find(r => r.id === recipeId);
+      if (recipeToEdit) {
+        handleOpenDialog(recipeToEdit);
+      }
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams, recipes]);
+
 
   const handleOpenDialog = (recipe?: Recipe) => {
     setEditingRecipe(recipe || null);
