@@ -30,10 +30,11 @@ const categoryNames: Record<Category, string> = {
 
 interface InventoryListProps {
   inventory: Product[];
+  onEditProduct: (product: Product) => void;
   onDeleteProduct: (product: Product) => void;
 }
 
-export function InventoryList({ inventory, onDeleteProduct }: InventoryListProps) {
+export function InventoryList({ inventory, onEditProduct, onDeleteProduct }: InventoryListProps) {
   const groupedInventory = inventory.reduce((acc, product) => {
     (acc[product.category] = acc[product.category] || []).push(product);
     return acc;
@@ -78,6 +79,7 @@ export function InventoryList({ inventory, onDeleteProduct }: InventoryListProps
                   <ProductCard
                     key={product.id}
                     product={product}
+                    onEdit={() => onEditProduct(product)}
                     onDelete={() => onDeleteProduct(product)}
                   />
                 ))}

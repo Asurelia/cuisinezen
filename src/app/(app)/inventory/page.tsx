@@ -5,6 +5,7 @@ import { useState } from 'react';
 import { PlusCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { AddProductDialog } from '@/components/add-product-dialog';
+import { EditProductDialog } from '@/components/edit-product-dialog';
 import { InventoryList } from '@/components/inventory-list';
 import type { Product } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
@@ -25,6 +26,8 @@ import {
 export default function InventoryPage() {
   const [inventory, setInventory] = useLocalStorage<Product[]>('inventory', initialInventory);
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [productToEdit, setProductToEdit] = useState<Product | null>(null);
   const [productToDelete, setProductToDelete] = useState<Product | null>(null);
   
   const { toast, dismiss } = useToast();
@@ -40,6 +43,21 @@ export default function InventoryPage() {
       description: `${productWithId.name} a été ajouté à votre inventaire.`,
     });
   };
+
+  const handleEditProduct = (updatedProduct: Product) => {
+    setInventory(prev => prev.map(p => p.id === updatedProduct.id ? updatedProduct : p));
+    toast({
+      title: 'Produit modifié',
+      description: `${updatedProduct.name} a été mis à jour.`,
+    });
+    setProductToEdit(null);
+  };
+
+  const openEditDialog = (product: Product) => {
+    setProductToEdit(product);
+    setIsEditDialogOpen(true);
+  };
+
 
   const handleUndoDelete = (product: Product, index: number) => {
     const newInventory = [...inventory];
@@ -85,6 +103,7 @@ export default function InventoryPage() {
       <main className="flex-1 pt-6">
         <InventoryList
           inventory={inventory}
+          onEditProduct={openEditDialog}
           onDeleteProduct={(product) => setProductToDelete(product)}
         />
       </main>
@@ -92,6 +111,12 @@ export default function InventoryPage() {
         isOpen={isAddDialogOpen}
         onOpenChange={setIsAddDialogOpen}
         onAddProduct={handleAddProduct}
+      />
+       <EditProductDialog
+        isOpen={isEditDialogOpen}
+        onOpenChange={setIsEditDialogOpen}
+        onEditProduct={handleEditProduct}
+        product={productToEdit}
       />
        <AlertDialog open={!!productToDelete} onOpenChange={(open) => !open && setProductToDelete(null)}>
         <AlertDialogContent>
