@@ -17,9 +17,11 @@ import { Separator } from './ui/separator';
 
 interface RecipeCardProps {
   recipe: Recipe;
+  onEdit: () => void;
+  onDelete: () => void;
 }
 
-export function RecipeCard({ recipe }: RecipeCardProps) {
+export function RecipeCard({ recipe, onEdit, onDelete }: RecipeCardProps) {
   return (
     <Card className="flex h-full flex-col overflow-hidden transition-shadow duration-300 hover:shadow-lg">
       <CardHeader className="relative p-0">
@@ -50,7 +52,7 @@ export function RecipeCard({ recipe }: RecipeCardProps) {
           variant="ghost"
           size="sm"
           className="w-full text-muted-foreground hover:bg-accent/80 hover:text-foreground"
-          disabled
+          onClick={onEdit}
         >
           <Pencil className="mr-2 h-4 w-4" />
           Modifier
@@ -59,7 +61,7 @@ export function RecipeCard({ recipe }: RecipeCardProps) {
           variant="ghost"
           size="sm"
           className="w-full text-destructive hover:bg-destructive/10 hover:text-destructive"
-          disabled
+          onClick={onDelete}
         >
           <Trash2 className="mr-2 h-4 w-4" />
           Supprimer
