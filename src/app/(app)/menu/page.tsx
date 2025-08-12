@@ -1,21 +1,35 @@
 'use client';
 
-import { useState, useRef, useTransition, ChangeEvent } from 'react';
+import { useState, useRef, useTransition, ChangeEvent, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { PlusCircle, FileText, Files, FileImage, UtensilsCrossed, BookOpen, Loader2, Salad, Soup, Info } from "lucide-react";
+import { PlusCircle, FileText, Files, FileImage, UtensilsCrossed, BookOpen, Loader2, Salad, Soup, Info, BookHeart } from "lucide-react";
 import { handleExtractMenu } from '@/lib/actions';
 import type { ExtractMenuOutput } from '@/ai/schemas/menu-extraction';
 import { useToast } from "@/hooks/use-toast";
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import type { Recipe } from '@/lib/types';
+import { mockRecipes } from '@/lib/mock-data';
 
 
 export default function MenuPage() {
   const [isExtracting, startExtractionTransition] = useTransition();
   const [extractedMenu, setExtractedMenu] = useState<ExtractMenuOutput | null>(null);
+  const [recipes, setRecipes] = useState<Recipe[]>([]);
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    // In a real app, you'd fetch this data. For now, we use mock data.
+    setRecipes(mockRecipes);
+  }, []);
+
+  const findRecipeForDish = (dishName: string): Recipe | undefined => {
+    if (!dishName) return undefined;
+    return recipes.find(recipe => recipe.name.toLowerCase() === dishName.toLowerCase());
+  };
+
 
   const handleFileChange = async (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -153,7 +167,7 @@ export default function MenuPage() {
                                 <div className="pl-4 mt-1 space-y-1 text-sm">
                                     {dayMenu.lunch && (
                                         <div className="flex items-center gap-2">
-                                            <Salad className="h-4 w-4 text-amber-600" />
+                                            {findRecipeForDish(dayMenu.lunch.name) ? <BookHeart className="h-4 w-4 text-green-600" /> : <Info className="h-4 w-4 text-amber-600" />}
                                             <div>
                                                 <span className="font-medium">Midi :</span> {dayMenu.lunch.name}
                                             </div>
@@ -161,7 +175,7 @@ export default function MenuPage() {
                                     )}
                                     {dayMenu.dinner && (
                                         <div className="flex items-center gap-2">
-                                            <Soup className="h-4 w-4 text-indigo-600" />
+                                             {findRecipeForDish(dayMenu.dinner.name) ? <BookHeart className="h-4 w-4 text-green-600" /> : <Info className="h-4 w-4 text-amber-600" />}
                                             <div>
                                                 <span className="font-medium">Soir :</span> {dayMenu.dinner.name}
                                             </div>
@@ -188,7 +202,7 @@ export default function MenuPage() {
         </CardContent>
          <CardFooter>
             <p className="text-xs text-muted-foreground">
-                L'IA vous aide à extraire les plats de vos menus. La gestion des ingrédients sera bientôt disponible.
+                L'icône <BookHeart className="inline-block h-3 w-3 text-green-600" /> indique une recette existante.
             </p>
         </CardFooter>
       </Card>
