@@ -15,6 +15,7 @@ import type { Recipe } from '@/lib/types';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { useLocalStorage } from '@/hooks/use-local-storage';
 import { initialRecipes } from '@/lib/initial-data';
+import { CreateMenuDialog } from '@/components/create-menu-dialog';
 
 
 type ExtractedMenuWithId = ExtractMenuOutput & { id: string; name: string };
@@ -23,6 +24,7 @@ export default function MenuPage() {
   const [isExtracting, startExtractionTransition] = useTransition();
   const [extractedMenus, setExtractedMenus] = useLocalStorage<ExtractedMenuWithId[]>('extractedMenus', []);
   const [recipes] = useLocalStorage<Recipe[]>('recipes', initialRecipes);
+  const [isCreateMenuOpen, setIsCreateMenuOpen] = useState(false);
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -94,6 +96,14 @@ export default function MenuPage() {
     });
   };
 
+  const handleSaveMenu = (newMenu: ExtractedMenuWithId) => {
+    setExtractedMenus(prev => [newMenu, ...prev]);
+    toast({
+      title: 'Menu sauvegardé !',
+      description: `${newMenu.name} a été ajouté à votre planification.`
+    });
+  };
+
   const weekDaysOrder = ["Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi", "Dimanche"];
 
   const renderDish = (meal: {name: string} | undefined, mealType: string) => {
@@ -122,146 +132,136 @@ export default function MenuPage() {
 
 
   return (
-    <div className="space-y-8">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold tracking-tight">Planification des Menus</h1>
-        <Button disabled>
-          <PlusCircle className="mr-2 h-4 w-4" />
-          Nouveau Menu
-        </Button>
-      </div>
+    <>
+      <div className="space-y-8">
+        <div className="flex items-center justify-between">
+          <h1 className="text-2xl font-bold tracking-tight">Planification des Menus</h1>
+          <Button onClick={() => setIsCreateMenuOpen(true)}>
+            <PlusCircle className="mr-2 h-4 w-4" />
+            Nouveau Menu
+          </Button>
+        </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Menu de la semaine</CardTitle>
-          <CardDescription>
-            Importez vos menus en image ou planifiez-les manuellement. Chaque menu importé sera ajouté à la liste ci-dessous.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="grid gap-6 md:grid-cols-2">
-          <div className="space-y-4">
-            <h3 className="font-medium">Importer un menu</h3>
-            <div className="flex flex-col gap-4">
-               <input
-                type="file"
-                ref={fileInputRef}
-                onChange={handleFileChange}
-                accept="image/*"
-                className="hidden"
-                id="image-upload"
-                disabled={isExtracting}
-              />
-              <Button
-                variant="outline"
-                className="justify-start"
-                onClick={() => fileInputRef.current?.click()}
-                disabled={isExtracting}
-              >
-                {isExtracting ? (
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                ) : (
-                  <FileImage className="mr-2 h-4 w-4" />
-                )}
-                <span>
-                  {isExtracting ? 'Analyse en cours...' : 'Importer une image'}
-                </span>
-              </Button>
+        <Card>
+          <CardHeader>
+            <CardTitle>Menu de la semaine</CardTitle>
+            <CardDescription>
+              Importez vos menus en image ou planifiez-les manuellement. Chaque menu importé sera ajouté à la liste ci-dessous.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="grid gap-6 md:grid-cols-2">
+            <div className="space-y-4">
+              <h3 className="font-medium">Importer un menu</h3>
+              <div className="flex flex-col gap-4">
+                 <input
+                  type="file"
+                  ref={fileInputRef}
+                  onChange={handleFileChange}
+                  accept="image/*"
+                  className="hidden"
+                  id="image-upload"
+                  disabled={isExtracting}
+                />
+                <Button
+                  variant="outline"
+                  className="justify-start"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={isExtracting}
+                >
+                  {isExtracting ? (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  ) : (
+                    <FileImage className="mr-2 h-4 w-4" />
+                  )}
+                  <span>
+                    {isExtracting ? 'Analyse en cours...' : 'Importer une image'}
+                  </span>
+                </Button>
 
-              <Button variant="outline" className="justify-start" disabled>
-                <Files className="mr-2 h-4 w-4" />
-                Importer un fichier CSV
-              </Button>
-               <Button variant="outline" className="justify-start" disabled>
-                <FileText className="mr-2 h-4 w-4" />
-                Importer un PDF ou autre
-              </Button>
+                <Button variant="outline" className="justify-start" disabled>
+                  <Files className="mr-2 h-4 w-4" />
+                  Importer un fichier CSV
+                </Button>
+                 <Button variant="outline" className="justify-start" disabled>
+                  <FileText className="mr-2 h-4 w-4" />
+                  Importer un PDF ou autre
+                </Button>
+              </div>
             </div>
-          </div>
-          <div className="space-y-4">
-             <h3 className="font-medium">Menus importés</h3>
-              {isExtracting && (
-                 <div className="flex items-center space-x-2 text-sm text-muted-foreground p-4 border rounded-lg">
-                    <Loader2 className="h-4 w-4 animate-spin"/>
-                    <span>L'IA analyse votre image, veuillez patienter...</span>
-                 </div>
-              )}
-              
-              {extractedMenus.length === 0 && !isExtracting ? (
-                 <div className="flex flex-col items-center justify-center rounded-lg border-2 border-dashed border-gray-300 p-12 text-center h-full">
-                    <UtensilsCrossed className="h-12 w-12 text-muted-foreground"/>
-                    <p className="mt-4 text-sm text-muted-foreground">Importez une image pour voir vos menus ici.</p>
-                 </div>
-              ) : (
-                <Accordion type="single" collapsible className="w-full space-y-2">
-                  {extractedMenus.map((menu, index) => {
-                    const sortedWeek = menu.week.sort((a, b) => weekDaysOrder.indexOf(a.day) - weekDaysOrder.indexOf(b.day));
-                    return (
-                       <AccordionItem key={menu.id} value={menu.id} className="rounded-lg border bg-card text-card-foreground shadow-sm">
-                          <AccordionTrigger className="px-4 py-3 text-base font-medium hover:no-underline">
-                            <div className='flex justify-between items-center w-full'>
-                                <span>{menu.name}</span>
-                                <Button variant="ghost" size="icon" className="mr-2 h-7 w-7 text-destructive hover:bg-destructive/10" onClick={(e) => { e.stopPropagation(); handleDeleteMenu(menu.id)}}>
-                                    <Trash2 className="h-4 w-4"/>
-                                </Button>
-                            </div>
-                          </AccordionTrigger>
-                          <AccordionContent className="p-0">
-                               <div className="p-4 space-y-4">
-                                {sortedWeek && sortedWeek.length > 0 ? (
-                                    sortedWeek.map(dayMenu => (
-                                        <div key={dayMenu.day}>
-                                            <h4 className="font-semibold text-primary">{dayMenu.day}</h4>
-                                            <div className="pl-4 mt-1 space-y-1 text-sm">
-                                              {renderDish(dayMenu.lunch, 'Midi')}
-                                              {renderDish(dayMenu.dinner, 'Soir')}
-                                              {!dayMenu.lunch && !dayMenu.dinner && (
-                                                    <p className="text-muted-foreground italic">Aucun plat pour ce jour.</p>
-                                                )}
-                                            </div>
-                                        </div>
-                                    ))
-                                ) : (
-                                    <Alert variant="default" className="bg-background">
-                                        <Info className="h-4 w-4" />
-                                        <AlertTitle>Extraction incomplète</AlertTitle>
-                                        <AlertDescription>
-                                            L'IA n'a pas pu identifier de structure de menu hebdomadaire dans l'image.
-                                        </AlertDescription>
-                                    </Alert>
-                                )}
-                            </div>
-                          </AccordionContent>
-                        </AccordionItem>
-                    )
-                  })}
-                </Accordion>
-              )}
-          </div>
-        </CardContent>
-         <CardFooter>
-            <p className="text-xs text-muted-foreground">
-                L'icône <BookHeart className="inline-block h-3 w-3 text-green-600" /> indique une recette existante. Passez la souris pour voir le lien.
-            </p>
-        </CardFooter>
-      </Card>
-      
-       <Card>
-        <CardHeader>
-          <CardTitle>Gestion des recettes</CardTitle>
-          <CardDescription>
-            Gérez les ingrédients pour chaque recette et recevez des alertes en cas de stock manquant.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-            <div className="flex flex-col items-center justify-center rounded-lg border-2 border-dashed border-gray-300 p-12 text-center h-full">
-                <BookOpen className="h-12 w-12 text-muted-foreground"/>
-                <p className="mt-4 text-sm text-muted-foreground">
-                    La gestion des recettes et les alertes de stock seront bientôt disponibles ici.
-                </p>
-             </div>
-        </CardContent>
-      </Card>
-
-    </div>
+            <div className="space-y-4">
+               <h3 className="font-medium">Menus importés & planifiés</h3>
+                {isExtracting && (
+                   <div className="flex items-center space-x-2 text-sm text-muted-foreground p-4 border rounded-lg">
+                      <Loader2 className="h-4 w-4 animate-spin"/>
+                      <span>L'IA analyse votre image, veuillez patienter...</span>
+                   </div>
+                )}
+                
+                {extractedMenus.length === 0 && !isExtracting ? (
+                   <div className="flex flex-col items-center justify-center rounded-lg border-2 border-dashed border-gray-300 p-12 text-center h-full">
+                      <UtensilsCrossed className="h-12 w-12 text-muted-foreground"/>
+                      <p className="mt-4 text-sm text-muted-foreground">Créez ou importez un menu pour le voir ici.</p>
+                   </div>
+                ) : (
+                  <Accordion type="single" collapsible className="w-full space-y-2">
+                    {extractedMenus.map((menu, index) => {
+                      const sortedWeek = menu.week.sort((a, b) => weekDaysOrder.indexOf(a.day) - weekDaysOrder.indexOf(b.day));
+                      return (
+                         <AccordionItem key={menu.id} value={menu.id} className="rounded-lg border bg-card text-card-foreground shadow-sm">
+                            <AccordionTrigger className="px-4 py-3 text-base font-medium hover:no-underline">
+                              <div className='flex justify-between items-center w-full'>
+                                  <span>{menu.name}</span>
+                                  <Button variant="ghost" size="icon" className="mr-2 h-7 w-7 text-destructive hover:bg-destructive/10" onClick={(e) => { e.stopPropagation(); handleDeleteMenu(menu.id)}}>
+                                      <Trash2 className="h-4 w-4"/>
+                                  </Button>
+                              </div>
+                            </AccordionTrigger>
+                            <AccordionContent className="p-0">
+                                 <div className="p-4 space-y-4">
+                                  {sortedWeek && sortedWeek.length > 0 ? (
+                                      sortedWeek.map(dayMenu => (
+                                          <div key={dayMenu.day}>
+                                              <h4 className="font-semibold text-primary">{dayMenu.day}</h4>
+                                              <div className="pl-4 mt-1 space-y-1 text-sm">
+                                                {renderDish(dayMenu.lunch, 'Midi')}
+                                                {renderDish(dayMenu.dinner, 'Soir')}
+                                                {!dayMenu.lunch && !dayMenu.dinner && (
+                                                      <p className="text-muted-foreground italic">Aucun plat pour ce jour.</p>
+                                                  )}
+                                              </div>
+                                          </div>
+                                      ))
+                                  ) : (
+                                      <Alert variant="default" className="bg-background">
+                                          <Info className="h-4 w-4" />
+                                          <AlertTitle>Menu vide</AlertTitle>
+                                          <AlertDescription>
+                                              Aucun plat n'a été planifié pour cette semaine.
+                                          </AlertDescription>
+                                      </Alert>
+                                  )}
+                              </div>
+                            </AccordionContent>
+                          </AccordionItem>
+                      )
+                    })}
+                  </Accordion>
+                )}
+            </div>
+          </CardContent>
+           <CardFooter>
+              <p className="text-xs text-muted-foreground">
+                  L'icône <BookHeart className="inline-block h-3 w-3 text-green-600" /> indique une recette existante. Passez la souris pour voir le lien.
+              </p>
+          </CardFooter>
+        </Card>
+      </div>
+      <CreateMenuDialog
+        isOpen={isCreateMenuOpen}
+        onOpenChange={setIsCreateMenuOpen}
+        recipes={recipes}
+        onSave={handleSaveMenu}
+      />
+    </>
   );
 }
