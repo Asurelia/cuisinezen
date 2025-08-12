@@ -1,5 +1,5 @@
 import { SidebarProvider, Sidebar, SidebarInset, SidebarTrigger, SidebarMenu, SidebarMenuItem, SidebarMenuButton } from '@/components/ui/sidebar';
-import { Home, UtensilsCrossed, BookHeart } from 'lucide-react';
+import { Home, UtensilsCrossed, BookHeart, ShoppingCart } from 'lucide-react';
 import Link from 'next/link';
 
 export default function AppLayout({
@@ -58,6 +58,16 @@ export default function AppLayout({
                 <a>
                   <BookHeart />
                   <span>Recettes</span>
+                </a>
+              </SidebarMenuButton>
+            </Link>
+          </SidebarMenuItem>
+           <SidebarMenuItem>
+            <Link href="/shopping-list" legacyBehavior passHref>
+              <SidebarMenuButton asChild tooltip="Liste de courses">
+                <a>
+                  <ShoppingCart />
+                  <span>Liste de courses</span>
                 </a>
               </SidebarMenuButton>
             </Link>
