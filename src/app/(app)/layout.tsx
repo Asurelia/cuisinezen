@@ -1,5 +1,5 @@
 import { SidebarProvider, Sidebar, SidebarInset, SidebarTrigger, SidebarMenu, SidebarMenuItem, SidebarMenuButton } from '@/components/ui/sidebar';
-import { Home, UtensilsCrossed } from 'lucide-react';
+import { Home, UtensilsCrossed, BookHeart } from 'lucide-react';
 import Link from 'next/link';
 
 export default function AppLayout({
@@ -49,6 +49,16 @@ export default function AppLayout({
                   <a>
                     <UtensilsCrossed />
                     <span>Menus</span>
+                  </a>
+                </SidebarMenuButton>
+              </Link>
+            </SidebarMenuItem>
+            <SidebarMenuItem>
+              <Link href="/recipes" legacyBehavior passHref>
+                <SidebarMenuButton asChild tooltip="Recettes">
+                  <a>
+                    <BookHeart />
+                    <span>Recettes</span>
                   </a>
                 </SidebarMenuButton>
               </Link>

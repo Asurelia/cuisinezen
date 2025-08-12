@@ -24,3 +24,18 @@ export interface Product {
   dataAiHint?: string;
   batches: Batch[];
 }
+
+export interface Ingredient {
+  productId: string;
+  quantity: number;
+  unit: 'g' | 'ml' | 'piece';
+}
+
+export interface Recipe {
+  id: string;
+  name: string;
+  description: string;
+  imageUrl?: string;
+  dataAiHint?: string;
+  ingredients: Ingredient[];
+}

@@ -1,4 +1,4 @@
-import type { Product } from './types';
+import type { Product, Recipe } from './types';
 
 function addDays(date: Date, days: number): Date {
   const result = new Date(date);
@@ -99,5 +99,27 @@ export const mockInventory: Product[] = [
     imageUrl: 'https://placehold.co/400x300.png',
     dataAiHint: "cleaning sponges",
     batches: [{ id: '10a', quantity: 3, expiryDate: null }],
+  },
+];
+
+export const mockRecipes: Recipe[] = [
+  {
+    id: '1',
+    name: 'Pâtes à la sauce tomate',
+    description: 'Un classique rapide et délicieux pour toute la famille.',
+    imageUrl: 'https://placehold.co/400x300.png',
+    dataAiHint: 'pasta tomato sauce',
+    ingredients: [
+      { productId: '5', quantity: 400, unit: 'g' },
+      { productId: '6', quantity: 1, unit: 'piece' },
+    ],
+  },
+  {
+    id: '2',
+    name: 'Pizza rapide',
+    description: 'Une pizza simple et efficace pour les soirs de flemme.',
+    imageUrl: 'https://placehold.co/400x300.png',
+    dataAiHint: 'pizza slice',
+    ingredients: [{ productId: '4', quantity: 1, unit: 'piece' }],
   },
 ];
