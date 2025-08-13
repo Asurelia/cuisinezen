@@ -1,3 +1,4 @@
+
 import Image from 'next/image';
 import {
   Card,
@@ -5,15 +6,14 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
-import { ChefHat, Clock, BarChart3, CheckCircle2 } from 'lucide-react';
-import type { Recipe } from '@/lib/types';
+import { ChefHat, Clock, BarChart3 } from 'lucide-react';
+import type { Recipe, Product } from '@/lib/types';
 import { Separator } from './ui/separator';
 import { RecipeCardActions } from './recipe-card-actions';
 
 interface RecipeCardProps {
   recipe: Recipe;
-  onEdit: () => void;
-  onDelete: () => void;
+  inventory: Product[];
 }
 
 const difficultyMap = {
@@ -22,7 +22,7 @@ const difficultyMap = {
   difficile: 'Difficile',
 };
 
-export function RecipeCard({ recipe, onEdit, onDelete }: RecipeCardProps) {
+export function RecipeCard({ recipe, inventory }: RecipeCardProps) {
   return (
     <Card className="flex h-full flex-col overflow-hidden transition-shadow duration-300 hover:shadow-lg animate-fade-in">
       <CardHeader className="relative p-0">
@@ -65,7 +65,7 @@ export function RecipeCard({ recipe, onEdit, onDelete }: RecipeCardProps) {
             )}
          </div>
       </CardContent>
-       <RecipeCardActions onEdit={onEdit} onDelete={onDelete} />
+       <RecipeCardActions recipe={recipe} inventory={inventory} />
     </Card>
   );
 }

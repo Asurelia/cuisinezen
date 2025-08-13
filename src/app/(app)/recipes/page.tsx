@@ -1,140 +1,55 @@
 
-'use client';
-
-import { useState, useMemo, useEffect } from 'react';
-import { useSearchParams } from 'next/navigation';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { PlusCircle, Search, ChevronLeft, ChevronRight } from 'lucide-react';
+import { use } from 'react';
+import type { Metadata } from 'next';
+import { PlusCircle, Search } from 'lucide-react';
 import type { Recipe, Product } from '@/lib/types';
 import { RecipeCard } from '@/components/recipe-card';
-import { RecipeFormDialog } from '@/components/recipe-form-dialog';
-import { useToast } from '@/hooks/use-toast';
-import { ToastAction } from '@/components/ui/toast';
-import { useLocalStorage } from '@/hooks/use-local-storage';
-import { initialRecipes, initialInventory } from '@/lib/initial-data';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog"
+import { getRecipes, getInventory } from '@/lib/data';
+import { RecipePagination } from '@/components/recipe-pagination';
+import { RecipeSearch } from '@/components/recipe-search';
+import { AddRecipeButton } from '@/components/add-recipe-button';
 
-const RECIPES_PER_PAGE = 25;
+export const metadata: Metadata = {
+  title: 'Mes Recettes',
+};
 
-export default function RecipesPage() {
-  const searchParams = useSearchParams();
-  const [recipes, setRecipes] = useLocalStorage<Recipe[]>('recipes', initialRecipes);
-  const [inventory] = useLocalStorage<Product[]>('inventory', initialInventory);
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [editingRecipe, setEditingRecipe] = useState<Recipe | null>(null);
-  const [recipeToDelete, setRecipeToDelete] = useState<Recipe | null>(null);
-  const { toast, dismiss } = useToast();
-  const [searchQuery, setSearchQuery] = useState('');
-  const [currentPage, setCurrentPage] = useState(1);
-  
-  useEffect(() => {
-    const recipeId = searchParams.get('recipeId');
-    if (recipeId) {
-      const recipeToEdit = recipes.find(r => r.id === recipeId);
-      if (recipeToEdit) {
-        handleOpenDialog(recipeToEdit);
-      }
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchParams, recipes]);
+const RECIPES_PER_PAGE = 8;
 
-
-  const handleOpenDialog = (recipe?: Recipe) => {
-    setEditingRecipe(recipe || null);
-    setIsDialogOpen(true);
+export default function RecipesPage({
+  searchParams,
+}: {
+  searchParams?: {
+    query?: string;
+    page?: string;
   };
+}) {
+  const query = searchParams?.query || '';
+  const currentPage = Number(searchParams?.page) || 1;
 
-  const handleSaveRecipe = (savedRecipe: Recipe) => {
-    if (editingRecipe) {
-      setRecipes(recipes.map(r => (r.id === savedRecipe.id ? savedRecipe : r)));
-      toast({ title: 'Recette modifiée', description: `${savedRecipe.name} a été mise à jour.` });
-    } else {
-      setRecipes([savedRecipe, ...recipes]);
-      toast({ title: 'Recette ajoutée', description: `${savedRecipe.name} a été créée.` });
-    }
-    setEditingRecipe(null);
-  };
+  const allRecipes = use(getRecipes());
+  const inventory = use(getInventory());
 
-  const handleUndoDelete = (recipe: Recipe) => {
-    setRecipes(prev => [...prev, recipe].sort((a,b) => a.name.localeCompare(b.name)));
-    dismiss();
-  };
-
-  const confirmDeleteRecipe = () => {
-    if (!recipeToDelete) return;
-
-    setRecipes(recipes.filter(r => r.id !== recipeToDelete.id));
-
-    toast({
-      title: 'Recette supprimée',
-      description: `${recipeToDelete.name} a été supprimée.`,
-      action: <ToastAction altText="Annuler" onClick={() => handleUndoDelete(recipeToDelete)}>Annuler</ToastAction>,
-    });
-    
-    setRecipeToDelete(null);
-  };
-
-  const filteredRecipes = useMemo(() => {
-    return recipes.filter(recipe => 
-      recipe.name.toLowerCase().includes(searchQuery.toLowerCase())
-    );
-  }, [recipes, searchQuery]);
+  const filteredRecipes = allRecipes.filter(recipe =>
+    recipe.name.toLowerCase().includes(query.toLowerCase())
+  );
 
   const totalPages = Math.ceil(filteredRecipes.length / RECIPES_PER_PAGE);
 
-  const paginatedRecipes = useMemo(() => {
-    const startIndex = (currentPage - 1) * RECIPES_PER_PAGE;
-    const endIndex = startIndex + RECIPES_PER_PAGE;
-    return filteredRecipes.slice(startIndex, endIndex);
-  }, [filteredRecipes, currentPage]);
-
-  const handleNextPage = () => {
-    if (currentPage < totalPages) {
-      setCurrentPage(currentPage + 1);
-    }
-  };
-
-  const handlePrevPage = () => {
-    if (currentPage > 1) {
-      setCurrentPage(currentPage - 1);
-    }
-  };
+  const paginatedRecipes = filteredRecipes.slice(
+    (currentPage - 1) * RECIPES_PER_PAGE,
+    currentPage * RECIPES_PER_PAGE
+  );
 
   return (
     <div className="flex min-h-screen w-full flex-col">
-       <header className="sticky top-0 z-10 flex h-16 items-center gap-4 border-b bg-background/80 px-4 backdrop-blur-sm md:px-6 -mx-4 md:-mx-6">
-          <h1 className="text-xl font-bold tracking-tight text-foreground">
-            Mes Recettes
-          </h1>
-          <div className="ml-auto flex items-center gap-4">
-            <div className="relative">
-              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-              <Input
-                type="search"
-                placeholder="Rechercher une recette..."
-                className="w-full rounded-lg bg-background pl-8 md:w-[200px] lg:w-[320px]"
-                value={searchQuery}
-                onChange={(e) => {
-                  setSearchQuery(e.target.value);
-                  setCurrentPage(1); // Reset to first page on new search
-                }}
-              />
-            </div>
-            <Button onClick={() => handleOpenDialog()}>
-              <PlusCircle className="mr-2 h-4 w-4" />
-              Ajouter une recette
-            </Button>
-          </div>
+      <header className="sticky top-0 z-10 flex h-16 items-center gap-4 border-b bg-background/80 px-4 backdrop-blur-sm md:px-6 -mx-4 md:-mx-6">
+        <h1 className="text-xl font-bold tracking-tight text-foreground">
+          Mes Recettes
+        </h1>
+        <div className="ml-auto flex items-center gap-4">
+          <RecipeSearch placeholder="Rechercher une recette..." />
+          <AddRecipeButton inventory={inventory} />
+        </div>
       </header>
       <main className="flex-1 pt-6">
         {paginatedRecipes.length > 0 ? (
@@ -144,26 +59,11 @@ export default function RecipesPage() {
                 <RecipeCard 
                   key={recipe.id} 
                   recipe={recipe}
-                  onEdit={() => handleOpenDialog(recipe)}
-                  onDelete={() => setRecipeToDelete(recipe)}
+                  inventory={inventory}
                 />
               ))}
             </div>
-            {totalPages > 1 && (
-              <div className="mt-8 flex items-center justify-center gap-4">
-                <Button variant="outline" size="icon" onClick={handlePrevPage} disabled={currentPage === 1}>
-                  <ChevronLeft className="h-4 w-4" />
-                  <span className="sr-only">Page précédente</span>
-                </Button>
-                <span className="text-sm font-medium">
-                  Page {currentPage} sur {totalPages}
-                </span>
-                <Button variant="outline" size="icon" onClick={handleNextPage} disabled={currentPage === totalPages}>
-                  <ChevronRight className="h-4 w-4" />
-                   <span className="sr-only">Page suivante</span>
-                </Button>
-              </div>
-            )}
+            <RecipePagination totalPages={totalPages} />
           </>
         ) : (
            <div className="flex flex-col items-center justify-center rounded-lg border-2 border-dashed border-gray-300 p-12 text-center h-[calc(100vh-12rem)]">
@@ -175,27 +75,6 @@ export default function RecipesPage() {
           </div>
         )}
       </main>
-       <RecipeFormDialog
-        isOpen={isDialogOpen}
-        onOpenChange={setIsDialogOpen}
-        onSave={handleSaveRecipe}
-        recipe={editingRecipe}
-        inventory={inventory}
-      />
-       <AlertDialog open={!!recipeToDelete} onOpenChange={(open) => !open && setRecipeToDelete(null)}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Êtes-vous sûr de vouloir supprimer cette recette ?</AlertDialogTitle>
-            <AlertDialogDescription>
-              Cette action est irréversible. La recette "{recipeToDelete?.name}" sera définitivement supprimée.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => setRecipeToDelete(null)}>Annuler</AlertDialogCancel>
-            <AlertDialogAction onClick={confirmDeleteRecipe}>Confirmer</AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </div>
   );
 }
