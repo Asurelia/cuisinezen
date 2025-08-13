@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -9,7 +9,7 @@ import {
   DialogTitle,
   DialogDescription,
 } from '@/components/ui/dialog';
-import { BarcodeScanner } from 'react-zxing';
+import { useZxing } from 'react-zxing';
 import { useToast } from '@/hooks/use-toast';
 import { Alert, AlertDescription, AlertTitle } from './ui/alert';
 import { VideoOff } from 'lucide-react';
@@ -24,24 +24,27 @@ export function BarcodeScannerDialog({ isOpen, onOpenChange, onScan }: BarcodeSc
   const { toast } = useToast();
   const [hasPermission, setHasPermission] = useState<boolean | null>(null);
 
-  const handleScan = (result: any) => {
-    if (result) {
+  const { ref } = useZxing({
+    onDecodeResult(result) {
       onScan(result.getText());
-    }
-  };
-
-  const handleError = (error: Error) => {
-    console.error(error);
-    if (error.name === 'NotAllowedError') {
-        setHasPermission(false);
-    } else {
-        toast({
-            variant: 'destructive',
-            title: 'Erreur du scanner',
-            description: error.message || 'Une erreur inconnue est survenue.',
-        });
-    }
-  };
+    },
+    onError(error) {
+        console.error(error);
+        if (error.name === 'NotAllowedError' || error.name === 'PermissionDeniedError') {
+            setHasPermission(false);
+        } else {
+            toast({
+                variant: 'destructive',
+                title: 'Erreur du scanner',
+                description: error.message || 'Une erreur inconnue est survenue.',
+            });
+        }
+    },
+    onMediaStream(stream) {
+        setHasPermission(!!stream);
+    },
+    paused: !isOpen,
+  });
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
@@ -64,11 +67,7 @@ export function BarcodeScannerDialog({ isOpen, onOpenChange, onScan }: BarcodeSc
                     </Alert>
                 </div>
             ) : (
-                <BarcodeScanner
-                    onResult={handleScan}
-                    onError={handleError}
-                    onCameraStream={(stream) => setHasPermission(!!stream)}
-                />
+                <video ref={ref} className="w-full h-full object-cover" />
             )}
         </div>
       </DialogContent>
