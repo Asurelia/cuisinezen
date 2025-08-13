@@ -1,3 +1,4 @@
+
 import { SidebarProvider, Sidebar, SidebarInset, SidebarTrigger, SidebarMenu, SidebarMenuItem, SidebarMenuButton } from '@/components/ui/sidebar';
 import { Home, UtensilsCrossed, BookHeart, ShoppingCart } from 'lucide-react';
 import Link from 'next/link';
@@ -33,44 +34,36 @@ export default function AppLayout({
         </div>
         <SidebarMenu className="flex-1">
           <SidebarMenuItem>
-            <Link href="/inventory" legacyBehavior passHref>
-              <SidebarMenuButton asChild tooltip="Inventaire">
-                <a>
-                  <Home />
-                  <span>Inventaire</span>
-                </a>
-              </SidebarMenuButton>
-            </Link>
+            <SidebarMenuButton asChild tooltip="Inventaire">
+              <Link href="/inventory">
+                <Home />
+                <span>Inventaire</span>
+              </Link>
+            </SidebarMenuButton>
           </SidebarMenuItem>
           <SidebarMenuItem>
-            <Link href="/menu" legacyBehavior passHref>
-              <SidebarMenuButton asChild tooltip="Menus">
-                <a>
-                  <UtensilsCrossed />
-                  <span>Menus</span>
-                </a>
-              </SidebarMenuButton>
-            </Link>
+            <SidebarMenuButton asChild tooltip="Menus">
+              <Link href="/menu">
+                <UtensilsCrossed />
+                <span>Menus</span>
+              </Link>
+            </SidebarMenuButton>
           </SidebarMenuItem>
           <SidebarMenuItem>
-            <Link href="/recipes" legacyBehavior passHref>
-              <SidebarMenuButton asChild tooltip="Recettes">
-                <a>
-                  <BookHeart />
-                  <span>Recettes</span>
-                </a>
-              </SidebarMenuButton>
-            </Link>
+            <SidebarMenuButton asChild tooltip="Recettes">
+              <Link href="/recipes">
+                <BookHeart />
+                <span>Recettes</span>
+              </Link>
+            </SidebarMenuButton>
           </SidebarMenuItem>
            <SidebarMenuItem>
-            <Link href="/shopping-list" legacyBehavior passHref>
-              <SidebarMenuButton asChild tooltip="Liste de courses">
-                <a>
-                  <ShoppingCart />
-                  <span>Liste de courses</span>
-                </a>
-              </SidebarMenuButton>
-            </Link>
+            <SidebarMenuButton asChild tooltip="Liste de courses">
+              <Link href="/shopping-list">
+                <ShoppingCart />
+                <span>Liste de courses</span>
+              </Link>
+            </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>
       </Sidebar>

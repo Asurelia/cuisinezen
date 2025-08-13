@@ -119,12 +119,12 @@ export default function MenuPage() {
             </div>
         </div>
         {recipe && (
-             <Link href={`/recipes?recipeId=${recipe.id}`} passHref>
-                <Button variant="ghost" size="sm" className="opacity-0 group-hover:opacity-100 transition-opacity">
+             <Button variant="ghost" size="sm" asChild className="opacity-0 group-hover:opacity-100 transition-opacity">
+                <Link href={`/recipes?recipeId=${recipe.id}`}>
                     Voir
                     <ExternalLink className="h-3 w-3 ml-1.5"/>
-                </Button>
-            </Link>
+                </Link>
+            </Button>
         )}
       </div>
     );
