@@ -9,10 +9,11 @@ import type { ExtractMenuOutput } from '@/ai/schemas/menu-extraction';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Button } from '@/components/ui/button';
-import { FileDown, ListTodo, ShoppingCart } from 'lucide-react';
+import { FileDown, ListTodo, ShoppingCart, Lightbulb } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { categoryNames } from '@/lib/types';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { SuggestedItems } from '@/components/suggested-items';
 
 type ExtractedMenuWithId = ExtractMenuOutput & { id: string; name: string };
 
@@ -110,6 +111,8 @@ export default function ShoppingListPage() {
   
   const allCategories = Object.keys(shoppingList.toBuy);
 
+  const hasNothingToBuy = allCategories.length === 0;
+
   return (
     <div className="space-y-8">
       <div className="flex items-center justify-between">
@@ -120,58 +123,78 @@ export default function ShoppingListPage() {
         </Button>
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Vos Besoins</CardTitle>
-          <CardDescription>
-            Voici la liste des produits à acheter, calculée à partir de vos menus planifiés et de votre inventaire actuel.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          {extractedMenus.length === 0 ? (
-             <Alert>
-              <ListTodo className="h-4 w-4" />
-              <AlertTitle>Aucun menu planifié</AlertTitle>
-              <AlertDescription>
-                Importez un menu sur la page "Menus" pour commencer à générer votre liste de courses.
-              </AlertDescription>
-            </Alert>
-          ) : allCategories.length === 0 ? (
-            <div className="flex flex-col items-center justify-center rounded-lg border-2 border-dashed border-gray-300 p-12 text-center h-full">
-              <ShoppingCart className="h-12 w-12 text-muted-foreground"/>
-              <p className="mt-4 font-semibold text-lg">Tout est en stock !</p>
-              <p className="text-sm text-muted-foreground">Vous avez tous les ingrédients nécessaires pour les recettes de vos menus.</p>
-            </div>
-          ) : (
-             <div className="space-y-6">
-                {allCategories.map(category => (
-                    <div key={category}>
-                        <h3 className="text-lg font-semibold mb-2 text-primary">{categoryNames[category as keyof typeof categoryNames]}</h3>
-                        <div className="space-y-2 rounded-lg border p-4">
-                            {shoppingList.toBuy[category].map(item => (
-                                <div key={item.product.id} className="flex items-center justify-between">
-                                    <div className="flex items-center gap-3">
-                                         <Checkbox 
-                                            id={item.product.id}
-                                            checked={!!checkedItems[item.product.id]}
-                                            onCheckedChange={() => handleToggleItem(item.product.id)}
-                                         />
-                                         <label htmlFor={item.product.id} className={`text-sm ${checkedItems[item.product.id] ? 'line-through text-muted-foreground' : ''}`}>
-                                             {item.product.name}
-                                         </label>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div className='lg:col-span-2'>
+            <Card>
+                <CardHeader>
+                    <CardTitle>Vos Besoins</CardTitle>
+                    <CardDescription>
+                        Voici la liste des produits à acheter, calculée à partir de vos menus planifiés et de votre inventaire actuel.
+                    </CardDescription>
+                </CardHeader>
+                <CardContent>
+                    {extractedMenus.length === 0 ? (
+                        <Alert>
+                        <ListTodo className="h-4 w-4" />
+                        <AlertTitle>Aucun menu planifié</AlertTitle>
+                        <AlertDescription>
+                            Importez un menu sur la page "Menus" pour commencer à générer votre liste de courses.
+                        </AlertDescription>
+                        </Alert>
+                    ) : hasNothingToBuy ? (
+                        <div className="flex flex-col items-center justify-center rounded-lg border-2 border-dashed border-gray-300 p-12 text-center h-full">
+                        <ShoppingCart className="h-12 w-12 text-muted-foreground"/>
+                        <p className="mt-4 font-semibold text-lg">Tout est en stock !</p>
+                        <p className="text-sm text-muted-foreground">Vous avez tous les ingrédients nécessaires pour les recettes de vos menus.</p>
+                        </div>
+                    ) : (
+                        <div className="space-y-6">
+                            {allCategories.map(category => (
+                                <div key={category}>
+                                    <h3 className="text-lg font-semibold mb-2 text-primary">{categoryNames[category as keyof typeof categoryNames]}</h3>
+                                    <div className="space-y-2 rounded-lg border p-4">
+                                        {shoppingList.toBuy[category].map(item => (
+                                            <div key={item.product.id} className="flex items-center justify-between">
+                                                <div className="flex items-center gap-3">
+                                                    <Checkbox 
+                                                        id={item.product.id}
+                                                        checked={!!checkedItems[item.product.id]}
+                                                        onCheckedChange={() => handleToggleItem(item.product.id)}
+                                                    />
+                                                    <label htmlFor={item.product.id} className={`text-sm ${checkedItems[item.product.id] ? 'line-through text-muted-foreground' : ''}`}>
+                                                        {item.product.name}
+                                                    </label>
+                                                </div>
+                                                <Badge variant={checkedItems[item.product.id] ? "secondary" : "default"}>
+                                                {item.missingQuantity} {item.unit}
+                                                </Badge>
+                                            </div>
+                                        ))}
                                     </div>
-                                    <Badge variant={checkedItems[item.product.id] ? "secondary" : "default"}>
-                                      {item.missingQuantity} {item.unit}
-                                    </Badge>
                                 </div>
                             ))}
                         </div>
-                    </div>
-                ))}
-             </div>
-          )}
-        </CardContent>
-      </Card>
+                    )}
+                </CardContent>
+            </Card>
+        </div>
+        <div className="lg:col-span-1">
+             <Card className="sticky top-20">
+                <CardHeader>
+                     <CardTitle className="flex items-center gap-2">
+                        <Lightbulb className="h-6 w-6 text-amber-500" />
+                        Suggestions
+                    </CardTitle>
+                    <CardDescription>
+                        Quelques articles que vous pourriez avoir besoin d'acheter régulièrement.
+                    </CardDescription>
+                </CardHeader>
+                <CardContent>
+                   <SuggestedItems inventory={inventory} />
+                </CardContent>
+             </Card>
+        </div>
+      </div>
     </div>
   );
 }
