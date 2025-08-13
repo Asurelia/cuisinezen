@@ -144,7 +144,6 @@ export default function RecipesPage() {
                 <RecipeCard 
                   key={recipe.id} 
                   recipe={recipe}
-                  inventory={inventory}
                   onEdit={() => handleOpenDialog(recipe)}
                   onDelete={() => setRecipeToDelete(recipe)}
                 />

@@ -1,10 +1,7 @@
-
-'use client';
-
 import Image from 'next/image';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
-import { CalendarClock, Trash2, Tag, AlertCircle, Pencil } from 'lucide-react';
+import { CalendarClock, Tag, AlertCircle } from 'lucide-react';
 import {
   Card,
   CardContent,
@@ -17,6 +14,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import type { Product, Batch } from '@/lib/types';
 import { Separator } from './ui/separator';
+import { ProductCardActions } from './product-card-actions';
 
 function getDaysUntilExpiry(expiryDate: Date): number {
   const today = new Date();
@@ -55,6 +53,13 @@ function ExpiryAlertBadge({ batch }: { batch: Batch }) {
     }
 
     return null;
+}
+
+
+interface ProductCardProps {
+  product: Product;
+  onEdit: () => void;
+  onDelete: () => void;
 }
 
 
@@ -116,26 +121,7 @@ export function ProductCard({ product, onEdit, onDelete }: ProductCardProps) {
             )}
         </div>
       </CardContent>
-      <CardFooter className="bg-muted/50 p-2 grid grid-cols-2 gap-2">
-        <Button
-          variant="ghost"
-          size="sm"
-          className="w-full text-muted-foreground hover:bg-accent/80 hover:text-foreground"
-          onClick={onEdit}
-        >
-          <Pencil className="mr-2 h-4 w-4" />
-          Modifier
-        </Button>
-        <Button
-          variant="ghost"
-          size="sm"
-          className="w-full text-destructive hover:bg-destructive/10 hover:text-destructive"
-          onClick={onDelete}
-        >
-          <Trash2 className="mr-2 h-4 w-4" />
-          Supprimer
-        </Button>
-      </CardFooter>
+      <ProductCardActions onEdit={onEdit} onDelete={onDelete} />
     </Card>
   );
 }
