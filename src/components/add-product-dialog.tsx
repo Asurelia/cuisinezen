@@ -26,7 +26,7 @@ import {
 import { Label } from '@/components/ui/label';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Calendar as CalendarIcon, Loader2, ImagePlus } from 'lucide-react';
+import { Calendar as CalendarIcon, Loader2, ImagePlus, Barcode } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
@@ -34,6 +34,7 @@ import type { Product, Category } from '@/lib/types';
 import { categories, categoryNames } from '@/lib/types';
 import { getCategorySuggestion } from '@/lib/actions';
 import { useToast } from '@/hooks/use-toast';
+import { BarcodeScannerDialog } from './barcode-scanner-dialog';
 
 interface AddProductDialogProps {
   isOpen: boolean;
@@ -53,6 +54,7 @@ export function AddProductDialog({ isOpen, onOpenChange, onAddProduct }: AddProd
   const [isSuggesting, startSuggestionTransition] = useTransition();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [isScannerOpen, setIsScannerOpen] = useState(false);
   const { toast } = useToast();
 
   const form = useForm<z.infer<typeof formSchema>>({
@@ -126,7 +128,16 @@ export function AddProductDialog({ isOpen, onOpenChange, onAddProduct }: AddProd
     closeDialog();
   }
 
+  const handleBarcodeScanned = (result: string) => {
+    toast({
+        title: "Code-barres scanné !",
+        description: `Code détecté : ${result}. La recherche de produit n'est pas encore implémentée.`
+    })
+    setIsScannerOpen(false);
+  }
+
   return (
+    <>
     <Dialog open={isOpen} onOpenChange={closeDialog}>
       <DialogContent className="sm:max-w-[480px]">
         <DialogHeader>
@@ -163,7 +174,12 @@ export function AddProductDialog({ isOpen, onOpenChange, onAddProduct }: AddProd
 
                 <div className="col-span-2 space-y-2">
                     <Label htmlFor="name">Nom du produit</Label>
-                    <Input id="name" {...form.register('name')} placeholder="ex: Lait, Tomates..." />
+                    <div className="flex gap-2">
+                        <Input id="name" {...form.register('name')} placeholder="ex: Lait, Tomates..." className="flex-grow" />
+                        <Button type="button" variant="outline" size="icon" onClick={() => setIsScannerOpen(true)}>
+                            <Barcode className="h-4 w-4" />
+                        </Button>
+                    </div>
                     {form.formState.errors.name && (
                     <p className="text-xs text-red-600">{form.formState.errors.name.message}</p>
                     )}
@@ -253,5 +269,11 @@ export function AddProductDialog({ isOpen, onOpenChange, onAddProduct }: AddProd
         </DialogFooter>
       </DialogContent>
     </Dialog>
+    <BarcodeScannerDialog 
+        isOpen={isScannerOpen}
+        onOpenChange={setIsScannerOpen}
+        onScan={handleBarcodeScanned}
+    />
+    </>
   );
 }
