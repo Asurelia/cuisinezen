@@ -18,12 +18,6 @@ import { Badge } from '@/components/ui/badge';
 import type { Product, Batch } from '@/lib/types';
 import { Separator } from './ui/separator';
 
-interface ProductCardProps {
-  product: Product;
-  onEdit: () => void;
-  onDelete: () => void;
-}
-
 function getDaysUntilExpiry(expiryDate: Date): number {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
@@ -33,40 +27,36 @@ function getDaysUntilExpiry(expiryDate: Date): number {
   return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 }
 
-function ExpiryBadge({ batch }: { batch: Batch }) {
-  if (!batch.expiryDate) {
-    return <Badge variant="secondary">Sans DLC</Badge>;
-  }
+function ExpiryAlertBadge({ batch }: { batch: Batch }) {
+    if (!batch.expiryDate) {
+        return null;
+    }
 
-  const daysUntil = getDaysUntilExpiry(batch.expiryDate);
+    const daysUntil = getDaysUntilExpiry(batch.expiryDate);
 
-  if (daysUntil < 0) {
-    return <Badge variant="destructive">Expiré</Badge>;
-  }
-  if (daysUntil <= 3) {
-    return (
-      <Badge variant="destructive" className="bg-red-500/80 text-white">
-        <AlertCircle className="mr-1.5 h-3 w-3" />
-        Expire dans {daysUntil}j
-      </Badge>
-    );
-  }
-  if (daysUntil <= 7) {
-    return (
-      <Badge variant="secondary" className="bg-amber-500/80 text-white">
-        <AlertCircle className="mr-1.5 h-3 w-3" />
-        Expire dans {daysUntil}j
-      </Badge>
-    );
-  }
+    if (daysUntil < 0) {
+        return <Badge variant="destructive" className="absolute top-2 right-2">Expiré</Badge>;
+    }
+    if (daysUntil <= 3) {
+        return (
+        <Badge variant="destructive" className="bg-red-500/90 text-white absolute top-2 right-2">
+            <AlertCircle className="mr-1.5 h-3 w-3" />
+            Expire dans {daysUntil}j
+        </Badge>
+        );
+    }
+    if (daysUntil <= 7) {
+        return (
+        <Badge variant="secondary" className="bg-amber-500/90 text-white absolute top-2 right-2">
+            <AlertCircle className="mr-1.5 h-3 w-3" />
+            Expire dans {daysUntil}j
+        </Badge>
+        );
+    }
 
-  return (
-    <Badge variant="outline">
-      <CalendarClock className="mr-1.5 h-3 w-3" />
-      {format(batch.expiryDate, 'dd MMM yyyy', { locale: fr })}
-    </Badge>
-  );
+    return null;
 }
+
 
 export function ProductCard({ product, onEdit, onDelete }: ProductCardProps) {
   const totalQuantity = product.batches.reduce((sum, batch) => sum + batch.quantity, 0);
@@ -79,6 +69,8 @@ export function ProductCard({ product, onEdit, onDelete }: ProductCardProps) {
         return a.expiryDate.getTime() - b.expiryDate.getTime();
     });
 
+  const mostUrgentBatch = sortedBatches.length > 0 ? sortedBatches[0] : null;
+
   return (
     <Card className="flex h-full flex-col overflow-hidden transition-shadow duration-300 hover:shadow-lg animate-fade-in">
       <CardHeader className="relative p-0">
@@ -89,6 +81,7 @@ export function ProductCard({ product, onEdit, onDelete }: ProductCardProps) {
           height={300}
           className="aspect-[4/3] w-full object-cover"
         />
+        {mostUrgentBatch && <ExpiryAlertBadge batch={mostUrgentBatch} />}
         <div className="absolute bottom-0 w-full bg-gradient-to-t from-black/80 to-transparent p-4 pt-12">
            <CardTitle className="text-xl font-bold text-white">{product.name}</CardTitle>
         </div>
@@ -105,11 +98,16 @@ export function ProductCard({ product, onEdit, onDelete }: ProductCardProps) {
                 <div className="space-y-2">
                 {sortedBatches.map((batch) => (
                     <div key={batch.id} className="flex items-center justify-between text-sm">
-                    <div className="flex items-center gap-2">
-                      <Tag className="h-4 w-4 text-muted-foreground" />
-                      <span>Quantité: {batch.quantity}</span>
-                    </div>
-                    <ExpiryBadge batch={batch} />
+                        <div className="flex items-center gap-2">
+                            <Tag className="h-4 w-4 text-muted-foreground" />
+                            <span>Quantité: {batch.quantity}</span>
+                        </div>
+                        <div className="flex items-center gap-2 text-muted-foreground">
+                            <CalendarClock className="h-4 w-4" />
+                            <span>
+                                {batch.expiryDate ? format(batch.expiryDate, 'dd MMM yyyy', { locale: fr }) : 'Sans DLC'}
+                            </span>
+                        </div>
                     </div>
                 ))}
                 </div>
