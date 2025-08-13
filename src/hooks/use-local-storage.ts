@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 
 function tryParse<T>(value: string | null): T | null {
     if (value === null) return null;
@@ -23,8 +23,8 @@ function tryParse<T>(value: string | null): T | null {
 }
 
 export function useLocalStorage<T>(key: string, initialValue: T) {
-  const [isMounted, setIsMounted] = useState(false);
   const [storedValue, setStoredValue] = useState<T>(initialValue);
+  const [isMounted, setIsMounted] = useState(false);
 
   useEffect(() => {
     setIsMounted(true);
@@ -34,33 +34,28 @@ export function useLocalStorage<T>(key: string, initialValue: T) {
     if (isMounted) {
       try {
         const item = window.localStorage.getItem(key);
-        const parsedItem = tryParse<T>(item);
-        if (parsedItem !== null) {
-          setStoredValue(parsedItem);
-        } else {
-          setStoredValue(initialValue);
+        if (item !== null) {
+          setStoredValue(tryParse<T>(item) ?? initialValue);
         }
       } catch (error) {
-        console.log(error);
-        setStoredValue(initialValue);
+        console.warn(`Error reading localStorage key “${key}”:`, error);
       }
     }
   }, [isMounted, key, initialValue]);
 
-
-  const setValue = (value: T | ((val: T) => T)) => {
-    if (!isMounted) return;
+  const setValue = useCallback((value: T | ((val: T) => T)) => {
+    if (!isMounted) {
+      return;
+    }
     try {
       const valueToStore = value instanceof Function ? value(storedValue) : value;
       setStoredValue(valueToStore);
-      if (typeof window !== 'undefined') {
-        window.localStorage.setItem(key, JSON.stringify(valueToStore));
-      }
+      window.localStorage.setItem(key, JSON.stringify(valueToStore));
     } catch (error) {
-      console.log(error);
+      console.warn(`Error setting localStorage key “${key}”:`, error);
     }
-  };
-
+  }, [isMounted, key, storedValue]);
+  
   useEffect(() => {
     const handleStorageChange = (e: StorageEvent) => {
         if (e.key === key && e.newValue) {
@@ -74,6 +69,11 @@ export function useLocalStorage<T>(key: string, initialValue: T) {
     window.addEventListener('storage', handleStorageChange);
     return () => window.removeEventListener('storage', handleStorageChange);
   }, [key]);
+
+  // Return initialValue on the server and during the first client render
+  if (!isMounted) {
+    return [initialValue, setValue] as const;
+  }
 
   return [storedValue, setValue] as const;
 }
