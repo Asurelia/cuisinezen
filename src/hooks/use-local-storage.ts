@@ -23,22 +23,33 @@ function tryParse<T>(value: string | null): T | null {
 }
 
 export function useLocalStorage<T>(key: string, initialValue: T) {
-  const [storedValue, setStoredValue] = useState<T>(() => {
-    if (typeof window === 'undefined') {
-      return initialValue;
-    }
+  const [isMounted, setIsMounted] = useState(false);
+  const [storedValue, setStoredValue] = useState<T>(initialValue);
 
-    try {
-      const item = window.localStorage.getItem(key);
-      const parsedItem = tryParse<T>(item);
-      return parsedItem !== null ? parsedItem : initialValue;
-    } catch (error) {
-      console.log(error);
-      return initialValue;
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
+  useEffect(() => {
+    if (isMounted) {
+      try {
+        const item = window.localStorage.getItem(key);
+        const parsedItem = tryParse<T>(item);
+        if (parsedItem !== null) {
+          setStoredValue(parsedItem);
+        } else {
+          setStoredValue(initialValue);
+        }
+      } catch (error) {
+        console.log(error);
+        setStoredValue(initialValue);
+      }
     }
-  });
+  }, [isMounted, key, initialValue]);
+
 
   const setValue = (value: T | ((val: T) => T)) => {
+    if (!isMounted) return;
     try {
       const valueToStore = value instanceof Function ? value(storedValue) : value;
       setStoredValue(valueToStore);
