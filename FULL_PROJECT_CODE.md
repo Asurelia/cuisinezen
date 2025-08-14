@@ -1,21 +1,14 @@
-
-# Code Complet du Projet CuisineZen
-
-Ce fichier contient l'intégralité du code source de votre application. Vous pouvez copier le contenu de chaque section et le coller dans un fichier correspondant sur votre ordinateur local pour recréer le projet.
-
 ---
+path: .env
 ---
-
-## Fichier: .env
 
 ```
 
 ```
 
 ---
+path: README.md
 ---
-
-## Fichier: README.md
 
 ```md
 git init -b main
@@ -27,9 +20,8 @@ To get started, take a look at src/app/page.tsx.
 ```
 
 ---
+path: apphosting.yaml
 ---
-
-## Fichier: apphosting.yaml
 
 ```yaml
 # Settings to manage and configure a Firebase App Hosting backend.
@@ -43,9 +35,8 @@ runConfig:
 ```
 
 ---
+path: components.json
 ---
-
-## Fichier: components.json
 
 ```json
 {
@@ -72,9 +63,8 @@ runConfig:
 ```
 
 ---
+path: next.config.ts
 ---
-
-## Fichier: next.config.ts
 
 ```ts
 import type {NextConfig} from 'next';
@@ -104,9 +94,8 @@ export default nextConfig;
 ```
 
 ---
+path: package.json
 ---
-
-## Fichier: package.json
 
 ```json
 {
@@ -182,25 +171,21 @@ export default nextConfig;
 ```
 
 ---
+path: src/ai/dev.ts
 ---
 
-## Fichier: src/ai/dev.ts
-
 ```ts
-
 import { config } from 'dotenv';
 config();
 
 import '@/ai/flows/suggest-food-category.ts';
 import '@/ai/flows/extract-menu-from-image.ts';
 
-
 ```
 
 ---
+path: src/ai/flows/extract-menu-from-image.ts
 ---
-
-## Fichier: src/ai/flows/extract-menu-from-image.ts
 
 ```ts
 'use server';
@@ -249,9 +234,8 @@ const extractMenuFlow = ai.defineFlow(
 ```
 
 ---
+path: src/ai/flows/suggest-food-category.ts
 ---
-
-## Fichier: src/ai/flows/suggest-food-category.ts
 
 ```ts
 'use server';
@@ -313,9 +297,8 @@ const suggestFoodCategoryFlow = ai.defineFlow(
 ```
 
 ---
+path: src/ai/genkit.ts
 ---
-
-## Fichier: src/ai/genkit.ts
 
 ```ts
 import {genkit} from 'genkit';
@@ -328,9 +311,8 @@ export const ai = genkit({
 ```
 
 ---
+path: src/ai/schemas/menu-extraction.ts
 ---
-
-## Fichier: src/ai/schemas/menu-extraction.ts
 
 ```ts
 import {z} from 'genkit';
@@ -362,9 +344,8 @@ export type ExtractMenuOutput = z.infer<typeof ExtractMenuOutputSchema>;
 ```
 
 ---
+path: src/app/(app)/inventory/page.tsx
 ---
-
-## Fichier: src/app/(app)/inventory/page.tsx
 
 ```tsx
 'use client';
@@ -506,13 +487,10 @@ export default function InventoryPage() {
 ```
 
 ---
+path: src/app/(app)/layout.tsx
 ---
 
-## Fichier: src/app/(app)/layout.tsx
-
 ```tsx
-'use client';
-
 import { SidebarProvider, Sidebar, SidebarInset, SidebarTrigger, SidebarMenu, SidebarMenuItem, SidebarMenuButton } from '@/components/ui/sidebar';
 import { Home, UtensilsCrossed, BookHeart, ShoppingCart } from 'lucide-react';
 import Link from 'next/link';
@@ -596,9 +574,8 @@ export default function AppLayout({
 ```
 
 ---
+path: src/app/(app)/menu/page.tsx
 ---
-
-## Fichier: src/app/(app)/menu/page.tsx
 
 ```tsx
 'use client';
@@ -870,9 +847,8 @@ export default function MenuPage() {
 ```
 
 ---
+path: src/app/(app)/recipes/page.tsx
 ---
-
-## Fichier: src/app/(app)/recipes/page.tsx
 
 ```tsx
 import { use } from 'react';
@@ -957,9 +933,8 @@ export default function RecipesPage({
 ```
 
 ---
+path: src/app/(app)/shopping-list/page.tsx
 ---
-
-## Fichier: src/app/(app)/shopping-list/page.tsx
 
 ```tsx
 'use client';
@@ -1164,9 +1139,8 @@ export default function ShoppingListPage() {
 ```
 
 ---
+path: src/app/globals.css
 ---
-
-## Fichier: src/app/globals.css
 
 ```css
 @tailwind base;
@@ -1260,9 +1234,8 @@ body {
 ```
 
 ---
+path: src/app/layout.tsx
 ---
-
-## Fichier: src/app/layout.tsx
 
 ```tsx
 import type {Metadata} from 'next';
@@ -1296,9 +1269,8 @@ export default function RootLayout({
 ```
 
 ---
+path: src/app/page.tsx
 ---
-
-## Fichier: src/app/page.tsx
 
 ```tsx
 import { redirect } from 'next/navigation';
@@ -1309,9 +1281,8 @@ export default function Home() {
 ```
 
 ---
+path: src/components/add-product-dialog.tsx
 ---
-
-## Fichier: src/components/add-product-dialog.tsx
 
 ```tsx
 'use client';
@@ -1595,9 +1566,8 @@ export function AddProductDialog({ isOpen, onOpenChange, onAddProduct }: AddProd
 ```
 
 ---
+path: src/components/add-recipe-button.tsx
 ---
-
-## Fichier: src/components/add-recipe-button.tsx
 
 ```tsx
 'use client';
@@ -1644,9 +1614,8 @@ export function AddRecipeButton({ inventory }: { inventory: Product[] }) {
 ```
 
 ---
+path: src/components/barcode-scanner-dialog.tsx
 ---
-
-## Fichier: src/components/barcode-scanner-dialog.tsx
 
 ```tsx
 'use client';
@@ -1727,9 +1696,8 @@ export function BarcodeScannerDialog({ isOpen, onOpenChange, onScan }: BarcodeSc
 ```
 
 ---
+path: src/components/create-menu-dialog.tsx
 ---
-
-## Fichier: src/components/create-menu-dialog.tsx
 
 ```tsx
 'use client';
@@ -1891,9 +1859,8 @@ export function CreateMenuDialog({ isOpen, onOpenChange, recipes, onSave }: Crea
 ```
 
 ---
+path: src/components/edit-product-dialog.tsx
 ---
-
-## Fichier: src/components/edit-product-dialog.tsx
 
 ```tsx
 'use client';
@@ -2111,9 +2078,8 @@ export function EditProductDialog({ isOpen, onOpenChange, onEditProduct, product
 ```
 
 ---
+path: src/components/inventory-list.tsx
 ---
-
-## Fichier: src/components/inventory-list.tsx
 
 ```tsx
 import {
@@ -2209,9 +2175,8 @@ export function InventoryList({ inventory, onEditProduct, onDeleteProduct }: Inv
 ```
 
 ---
+path: src/components/product-card-actions.tsx
 ---
-
-## Fichier: src/components/product-card-actions.tsx
 
 ```tsx
 'use client';
@@ -2252,9 +2217,8 @@ export function ProductCardActions({ onEdit, onDelete }: ProductCardActionsProps
 ```
 
 ---
+path: src/components/product-card.tsx
 ---
-
-## Fichier: src/components/product-card.tsx
 
 ```tsx
 import Image from 'next/image';
@@ -2387,9 +2351,8 @@ export function ProductCard({ product, onEdit, onDelete }: ProductCardProps) {
 ```
 
 ---
+path: src/components/recipe-card-actions.tsx
 ---
-
-## Fichier: src/components/recipe-card-actions.tsx
 
 ```tsx
 'use client';
@@ -2492,9 +2455,8 @@ export function RecipeCardActions({ recipe, inventory }: RecipeCardActionsProps)
 ```
 
 ---
+path: src/components/recipe-card.tsx
 ---
-
-## Fichier: src/components/recipe-card.tsx
 
 ```tsx
 import Image from 'next/image';
@@ -2570,9 +2532,8 @@ export function RecipeCard({ recipe, inventory }: RecipeCardProps) {
 ```
 
 ---
+path: src/components/recipe-form-dialog.tsx
 ---
-
-## Fichier: src/components/recipe-form-dialog.tsx
 
 ```tsx
 'use client';
@@ -2878,9 +2839,8 @@ export function RecipeFormDialog({ isOpen, onOpenChange, onSave, recipe, invento
 ```
 
 ---
+path: src/components/recipe-pagination.tsx
 ---
-
-## Fichier: src/components/recipe-pagination.tsx
 
 ```tsx
 'use client';
@@ -2937,9 +2897,8 @@ export function RecipePagination({ totalPages }: { totalPages: number }) {
 ```
 
 ---
+path: src/components/recipe-search.tsx
 ---
-
-## Fichier: src/components/recipe-search.tsx
 
 ```tsx
 'use client';
@@ -2982,9 +2941,8 @@ export function RecipeSearch({ placeholder }: { placeholder: string }) {
 ```
 
 ---
+path: src/components/suggested-items.tsx
 ---
-
-## Fichier: src/components/suggested-items.tsx
 
 ```tsx
 'use client';
@@ -3065,9 +3023,8 @@ export function SuggestedItems({ inventory }: SuggestedItemsProps) {
 ```
 
 ---
+path: src/components/ui/accordion.tsx
 ---
-
-## Fichier: src/components/ui/accordion.tsx
 
 ```tsx
 "use client"
@@ -3131,9 +3088,8 @@ export { Accordion, AccordionItem, AccordionTrigger, AccordionContent }
 ```
 
 ---
+path: src/components/ui/alert-dialog.tsx
 ---
-
-## Fichier: src/components/ui/alert-dialog.tsx
 
 ```tsx
 "use client"
@@ -3280,9 +3236,8 @@ export {
 ```
 
 ---
+path: src/components/ui/alert.tsx
 ---
-
-## Fichier: src/components/ui/alert.tsx
 
 ```tsx
 import * as React from "react"
@@ -3347,9 +3302,8 @@ export { Alert, AlertTitle, AlertDescription }
 ```
 
 ---
+path: src/components/ui/avatar.tsx
 ---
-
-## Fichier: src/components/ui/avatar.tsx
 
 ```tsx
 "use client"
@@ -3405,9 +3359,8 @@ export { Avatar, AvatarImage, AvatarFallback }
 ```
 
 ---
+path: src/components/ui/badge.tsx
 ---
-
-## Fichier: src/components/ui/badge.tsx
 
 ```tsx
 import * as React from "react"
@@ -3449,9 +3402,8 @@ export { Badge, badgeVariants }
 ```
 
 ---
+path: src/components/ui/button.tsx
 ---
-
-## Fichier: src/components/ui/button.tsx
 
 ```tsx
 import * as React from "react"
@@ -3513,9 +3465,8 @@ export { Button, buttonVariants }
 ```
 
 ---
+path: src/components/ui/calendar.tsx
 ---
-
-## Fichier: src/components/ui/calendar.tsx
 
 ```tsx
 "use client"
@@ -3591,9 +3542,8 @@ export { Calendar }
 ```
 
 ---
+path: src/components/ui/card.tsx
 ---
-
-## Fichier: src/components/ui/card.tsx
 
 ```tsx
 import * as React from "react"
@@ -3678,9 +3628,8 @@ export { Card, CardHeader, CardFooter, CardTitle, CardDescription, CardContent }
 ```
 
 ---
+path: src/components/ui/carousel.tsx
 ---
-
-## Fichier: src/components/ui/carousel.tsx
 
 ```tsx
 "use client"
@@ -3948,9 +3897,8 @@ export {
 ```
 
 ---
+path: src/components/ui/chart.tsx
 ---
-
-## Fichier: src/components/ui/chart.tsx
 
 ```tsx
 "use client"
@@ -4321,9 +4269,8 @@ export {
 ```
 
 ---
+path: src/components/ui/checkbox.tsx
 ---
-
-## Fichier: src/components/ui/checkbox.tsx
 
 ```tsx
 "use client"
@@ -4359,9 +4306,8 @@ export { Checkbox }
 ```
 
 ---
+path: src/components/ui/collapsible.tsx
 ---
-
-## Fichier: src/components/ui/collapsible.tsx
 
 ```tsx
 "use client"
@@ -4378,9 +4324,8 @@ export { Collapsible, CollapsibleTrigger, CollapsibleContent }
 ```
 
 ---
+path: src/components/ui/dialog.tsx
 ---
-
-## Fichier: src/components/ui/dialog.tsx
 
 ```tsx
 "use client"
@@ -4508,9 +4453,8 @@ export {
 ```
 
 ---
+path: src/components/ui/dropdown-menu.tsx
 ---
-
-## Fichier: src/components/ui/dropdown-menu.tsx
 
 ```tsx
 "use client"
@@ -4716,9 +4660,8 @@ export {
 ```
 
 ---
+path: src/components/ui/form.tsx
 ---
-
-## Fichier: src/components/ui/form.tsx
 
 ```tsx
 "use client"
@@ -4902,9 +4845,8 @@ export {
 ```
 
 ---
+path: src/components/ui/input.tsx
 ---
-
-## Fichier: src/components/ui/input.tsx
 
 ```tsx
 import * as React from "react"
@@ -4932,9 +4874,8 @@ export { Input }
 ```
 
 ---
+path: src/components/ui/label.tsx
 ---
-
-## Fichier: src/components/ui/label.tsx
 
 ```tsx
 "use client"
@@ -4966,9 +4907,8 @@ export { Label }
 ```
 
 ---
+path: src/components/ui/menubar.tsx
 ---
-
-## Fichier: src/components/ui/menubar.tsx
 
 ```tsx
 "use client"
@@ -5230,9 +5170,8 @@ export {
 ```
 
 ---
+path: src/components/ui/popover.tsx
 ---
-
-## Fichier: src/components/ui/popover.tsx
 
 ```tsx
 "use client"
@@ -5269,9 +5208,8 @@ export { Popover, PopoverTrigger, PopoverContent }
 ```
 
 ---
+path: src/components/ui/progress.tsx
 ---
-
-## Fichier: src/components/ui/progress.tsx
 
 ```tsx
 "use client"
@@ -5305,9 +5243,8 @@ export { Progress }
 ```
 
 ---
+path: src/components/ui/radio-group.tsx
 ---
-
-## Fichier: src/components/ui/radio-group.tsx
 
 ```tsx
 "use client"
@@ -5357,9 +5294,8 @@ export { RadioGroup, RadioGroupItem }
 ```
 
 ---
+path: src/components/ui/scroll-area.tsx
 ---
-
-## Fichier: src/components/ui/scroll-area.tsx
 
 ```tsx
 "use client"
@@ -5413,9 +5349,8 @@ export { ScrollArea, ScrollBar }
 ```
 
 ---
+path: src/components/ui/select.tsx
 ---
-
-## Fichier: src/components/ui/select.tsx
 
 ```tsx
 "use client"
@@ -5581,9 +5516,8 @@ export {
 ```
 
 ---
+path: src/components/ui/separator.tsx
 ---
-
-## Fichier: src/components/ui/separator.tsx
 
 ```tsx
 "use client"
@@ -5620,9 +5554,8 @@ export { Separator }
 ```
 
 ---
+path: src/components/ui/sheet.tsx
 ---
-
-## Fichier: src/components/ui/sheet.tsx
 
 ```tsx
 "use client"
@@ -5768,9 +5701,8 @@ export {
 ```
 
 ---
+path: src/components/ui/sidebar.tsx
 ---
-
-## Fichier: src/components/ui/sidebar.tsx
 
 ```tsx
 "use client"
@@ -6539,9 +6471,8 @@ export {
 ```
 
 ---
+path: src/components/ui/skeleton.tsx
 ---
-
-## Fichier: src/components/ui/skeleton.tsx
 
 ```tsx
 import { cn } from "@/lib/utils"
@@ -6562,9 +6493,8 @@ export { Skeleton }
 ```
 
 ---
+path: src/components/ui/slider.tsx
 ---
-
-## Fichier: src/components/ui/slider.tsx
 
 ```tsx
 "use client"
@@ -6598,9 +6528,8 @@ export { Slider }
 ```
 
 ---
+path: src/components/ui/switch.tsx
 ---
-
-## Fichier: src/components/ui/switch.tsx
 
 ```tsx
 "use client"
@@ -6635,9 +6564,8 @@ export { Switch }
 ```
 
 ---
+path: src/components/ui/table.tsx
 ---
-
-## Fichier: src/components/ui/table.tsx
 
 ```tsx
 import * as React from "react"
@@ -6760,9 +6688,8 @@ export {
 ```
 
 ---
+path: src/components/ui/tabs.tsx
 ---
-
-## Fichier: src/components/ui/tabs.tsx
 
 ```tsx
 "use client"
@@ -6823,9 +6750,8 @@ export { Tabs, TabsList, TabsTrigger, TabsContent }
 ```
 
 ---
+path: src/components/ui/textarea.tsx
 ---
-
-## Fichier: src/components/ui/textarea.tsx
 
 ```tsx
 import * as React from 'react';
@@ -6852,9 +6778,8 @@ export {Textarea};
 ```
 
 ---
+path: src/components/ui/toast.tsx
 ---
-
-## Fichier: src/components/ui/toast.tsx
 
 ```tsx
 "use client"
@@ -6989,9 +6914,8 @@ export {
 ```
 
 ---
+path: src/components/ui/toaster.tsx
 ---
-
-## Fichier: src/components/ui/toaster.tsx
 
 ```tsx
 "use client"
@@ -7032,9 +6956,8 @@ export function Toaster() {
 ```
 
 ---
+path: src/components/ui/tooltip.tsx
 ---
-
-## Fichier: src/components/ui/tooltip.tsx
 
 ```tsx
 "use client"
@@ -7070,9 +6993,8 @@ export { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider }
 ```
 
 ---
+path: src/hooks/use-local-storage.ts
 ---
-
-## Fichier: src/hooks/use-local-storage.ts
 
 ```ts
 'use client';
@@ -7099,40 +7021,38 @@ function tryParse<T>(value: string | null): T | null {
 }
 
 export function useLocalStorage<T>(key: string, initialValue: T) {
-  const [isMounted, setIsMounted] = useState(false);
   const [storedValue, setStoredValue] = useState<T>(initialValue);
+  const [isMounted, setIsMounted] = useState(false);
 
   useEffect(() => {
     setIsMounted(true);
   }, []);
 
-  const setValue = useCallback((value: T | ((val: T) => T)) => {
-    try {
-      const valueToStore = value instanceof Function ? value(storedValue) : value;
-      setStoredValue(valueToStore);
-      if (typeof window !== "undefined") {
-        window.localStorage.setItem(key, JSON.stringify(valueToStore));
-      }
-    } catch (error) {
-      console.warn(`Error setting localStorage key “${key}”:`, error);
-    }
-  }, [key, storedValue]);
-  
   useEffect(() => {
     if (isMounted) {
       try {
         const item = window.localStorage.getItem(key);
         if (item !== null) {
-          const parsedItem = tryParse<T>(item);
-          if (parsedItem !== null) {
-              setStoredValue(parsedItem);
-          }
+          setStoredValue(tryParse<T>(item) ?? initialValue);
         }
       } catch (error) {
         console.warn(`Error reading localStorage key “${key}”:`, error);
       }
     }
-  }, [isMounted, key]);
+  }, [isMounted, key, initialValue]);
+
+  const setValue = useCallback((value: T | ((val: T) => T)) => {
+    if (!isMounted) {
+      return;
+    }
+    try {
+      const valueToStore = value instanceof Function ? value(storedValue) : value;
+      setStoredValue(valueToStore);
+      window.localStorage.setItem(key, JSON.stringify(valueToStore));
+    } catch (error) {
+      console.warn(`Error setting localStorage key “${key}”:`, error);
+    }
+  }, [isMounted, key, storedValue]);
   
   useEffect(() => {
     const handleStorageChange = (e: StorageEvent) => {
@@ -7148,7 +7068,7 @@ export function useLocalStorage<T>(key: string, initialValue: T) {
     return () => window.removeEventListener('storage', handleStorageChange);
   }, [key]);
 
-
+  // Return initialValue on the server and during the first client render
   if (!isMounted) {
     return [initialValue, setValue] as const;
   }
@@ -7158,9 +7078,8 @@ export function useLocalStorage<T>(key: string, initialValue: T) {
 ```
 
 ---
+path: src/hooks/use-mobile.tsx
 ---
-
-## Fichier: src/hooks/use-mobile.tsx
 
 ```tsx
 import * as React from "react"
@@ -7185,9 +7104,8 @@ export function useIsMobile() {
 ```
 
 ---
+path: src/hooks/use-toast.ts
 ---
-
-## Fichier: src/hooks/use-toast.ts
 
 ```ts
 "use client"
@@ -7387,9 +7305,8 @@ export { useToast, toast }
 ```
 
 ---
+path: src/lib/actions.ts
 ---
-
-## Fichier: src/lib/actions.ts
 
 ```ts
 'use server';
@@ -7435,9 +7352,8 @@ export async function handleExtractMenu(photoDataUri: string): Promise<ExtractMe
 ```
 
 ---
+path: src/lib/data.ts
 ---
-
-## Fichier: src/lib/data.ts
 
 ```ts
 import 'server-only';
@@ -7463,9 +7379,8 @@ export async function getRecipes(): Promise<Recipe[]> {
 ```
 
 ---
+path: src/lib/initial-data.ts
 ---
-
-## Fichier: src/lib/initial-data.ts
 
 ```ts
 import type { Product, Recipe } from './types';
@@ -7576,9 +7491,8 @@ export const initialRecipes: Recipe[] = [
 ```
 
 ---
+path: src/lib/types.ts
 ---
-
-## Fichier: src/lib/types.ts
 
 ```ts
 export type Category = 'frais' | 'surgelé' | 'épicerie' | 'boisson' | 'entretien';
@@ -7628,9 +7542,8 @@ export interface Recipe {
 ```
 
 ---
+path: src/lib/utils.ts
 ---
-
-## Fichier: src/lib/utils.ts
 
 ```ts
 import { clsx, type ClassValue } from "clsx"
@@ -7642,9 +7555,8 @@ export function cn(...inputs: ClassValue[]) {
 ```
 
 ---
+path: tailwind.config.ts
 ---
-
-## Fichier: tailwind.config.ts
 
 ```ts
 import type {Config} from 'tailwindcss';
@@ -7754,9 +7666,8 @@ export default {
 ```
 
 ---
+path: tsconfig.json
 ---
-
-## Fichier: tsconfig.json
 
 ```json
 {
@@ -7787,4 +7698,3 @@ export default {
   "exclude": ["node_modules"]
 }
 ```
-
