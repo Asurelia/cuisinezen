@@ -5,6 +5,7 @@ import { getFirestore } from "firebase/firestore";
 
 // IMPORTANT: Remplissez ceci avec votre propre configuration Firebase !
 // Vous pouvez l'obtenir depuis la console Firebase de votre projet.
+// ▼▼▼▼▼ REMPLACEZ TOUT CE BLOC PAR VOTRE CONFIGURATION ▼▼▼▼▼
 const firebaseConfig = {
   apiKey: "YOUR_API_KEY",
   authDomain: "YOUR_AUTH_DOMAIN",
@@ -13,6 +14,7 @@ const firebaseConfig = {
   messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
   appId: "YOUR_APP_ID"
 };
+// ▲▲▲▲▲ FIN DE LA ZONE À REMPLACER ▲▲▲▲▲
 
 // Vérifie si la configuration est valide avant d'initialiser
 const isConfigValid = firebaseConfig.apiKey && firebaseConfig.apiKey !== "YOUR_API_KEY";
@@ -25,9 +27,11 @@ const db = app ? getFirestore(app) : null;
 
 // --- GESTION DES RÔLES ---
 // Pour désigner un ou plusieurs administrateurs, ajoutez leur email ici.
+// ▼▼▼▼▼ REMPLACEZ AVEC VOTRE EMAIL D'ADMINISTRATEUR ▼▼▼▼▼
 const ADMIN_EMAILS = [
-    'votre-email-admin@exemple.com', // <-- Remplacez par votre email admin créé dans la console Firebase
+    'votre-email-admin@exemple.com',
 ];
+// ▲▲▲▲▲ FIN DE LA ZONE À REMPLACER ▲▲▲▲▲
 
 const isAdmin = (email: string | null | undefined): boolean => {
     if (!email) return false;
