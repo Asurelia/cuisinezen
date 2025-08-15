@@ -40,11 +40,11 @@ export default function AccountPage() {
                     <CardContent>
                         <Alert className="mb-6">
                             <Terminal className="h-4 w-4" />
-                            <AlertTitle>Comment ça marche ?</AlertTitle>
+                            <AlertTitle>Action Requise</AlertTitle>
                             <AlertDescription>
-                                La création d'utilisateur est une action sensible. Pour des raisons de sécurité, cette fonctionnalité n'est pas implémentée directement depuis le client. Vous devez utiliser une **Firebase Function (Cloud Function)** pour créer des utilisateurs de manière sécurisée.
-                                <br /><br />
-                                Ce formulaire est une maquette pour vous montrer comment l'interface pourrait fonctionner.
+                                Pour que la création d'utilisateur fonctionne, vous devez déployer une **Firebase Function** sécurisée. 
+                                Ce formulaire est prêt à appeler votre fonction une fois qu'elle sera en ligne. 
+                                Consultez la documentation de Firebase pour créer une fonction "callable" qui utilise le SDK Admin pour créer des utilisateurs.
                             </AlertDescription>
                         </Alert>
                        <CreateUserForm />

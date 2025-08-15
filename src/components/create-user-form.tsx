@@ -30,19 +30,49 @@ export function CreateUserForm() {
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setLoading(true)
-    // Ici, vous appelleriez votre Firebase Function
-    console.log("Tentative de création d'utilisateur avec :", values)
+    
+    // INFO: Appel à la Firebase Function (à décommenter une fois la fonction déployée)
+    /*
+    try {
+      // Remplacez 'YOUR_CLOUD_FUNCTION_URL' par l'URL de votre Firebase Function
+      const response = await fetch('YOUR_CLOUD_FUNCTION_URL', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(values),
+      });
 
-    // Simulation d'un appel API
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Une erreur est survenue.');
+      }
+
+      toast({
+        title: "Utilisateur créé !",
+        description: `Le compte pour ${values.email} a été créé avec succès.`,
+      })
+      form.reset();
+
+    } catch (error: any) {
+      toast({
+        variant: 'destructive',
+        title: "Erreur lors de la création",
+        description: error.message,
+      })
+    } finally {
+        setLoading(false)
+    }
+    */
+
+    // --- Code de simulation à supprimer ---
+    console.log("Appel simulé de la fonction de création d'utilisateur avec :", values)
     await new Promise(resolve => setTimeout(resolve, 1500));
-
     toast({
       title: "Simulation Réussie",
-      description: `L'utilisateur ${values.email} aurait été créé. Intégrez une Firebase Function pour que cela fonctionne réellement.`,
+      description: `L'utilisateur ${values.email} aurait été créé. Déployez une Firebase Function pour que cela fonctionne réellement.`,
     })
-
     setLoading(false)
     form.reset()
+    // --- Fin du code de simulation ---
   }
 
   return (
