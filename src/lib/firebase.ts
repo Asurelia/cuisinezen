@@ -3,18 +3,15 @@ import { initializeApp, getApps, getApp } from "firebase/app";
 import { getAuth } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
 
-// IMPORTANT: Remplissez ceci avec votre propre configuration Firebase !
-// Vous pouvez l'obtenir depuis la console Firebase de votre projet.
-// ▼▼▼▼▼ REMPLACEZ TOUT CE BLOC PAR VOTRE CONFIGURATION ▼▼▼▼▼
+// Configuration Firebase de l'application
 const firebaseConfig = {
-  apiKey: "YOUR_API_KEY",
-  authDomain: "YOUR_AUTH_DOMAIN",
-  projectId: "YOUR_PROJECT_ID",
-  storageBucket: "YOUR_STORAGE_BUCKET",
-  messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
-  appId: "YOUR_APP_ID"
+  apiKey: "AIzaSyBJxzRAwN_Y2YHCYzkkzrARGZUVGtJT8Zs",
+  authDomain: "cuisinezen.firebaseapp.com",
+  projectId: "cuisinezen",
+  storageBucket: "cuisinezen.appspot.com",
+  messagingSenderId: "696328893008",
+  appId: "1:696328893008:web:d1635f46b7095ba07d5755"
 };
-// ▲▲▲▲▲ FIN DE LA ZONE À REMPLACER ▲▲▲▲▲
 
 // Vérifie si la configuration est valide avant d'initialiser
 const isConfigValid = firebaseConfig.apiKey && firebaseConfig.apiKey !== "YOUR_API_KEY";

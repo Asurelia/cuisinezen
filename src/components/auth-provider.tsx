@@ -47,11 +47,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const pathname = usePathname();
 
   useEffect(() => {
-    // Si la configuration Firebase n'est pas valide, on simule une session pour le développement.
     if (!isConfigValid) {
-      console.warn("Firebase config is missing. Running in dev mode with mocked user.");
-      setUser({ email: 'dev@cuisinezen.com' } as User); // Utilisateur fantôme
-      setIsAdmin(true); // On se met admin pour tout voir
       setLoading(false);
       return;
     }
@@ -81,9 +77,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   
   const signOutUser = () => {
     if (!isConfigValid) {
-        // En mode dev, simuler la déconnexion
-        setUser(null);
-        setIsAdmin(false);
         router.push('/login');
         return Promise.resolve();
     }
@@ -99,8 +92,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     signOutUser,
   };
 
-  // Afficher l'avertissement uniquement si le dev mode n'est pas actif
-  if (!isConfigValid && !user) {
+  if (!isConfigValid) {
     return <FirebaseWarning />;
   }
 
