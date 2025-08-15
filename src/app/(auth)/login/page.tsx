@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Loader2, Terminal } from "lucide-react";
 import { useAuth } from "@/components/auth-provider";
 import { useRouter } from "next/navigation";
@@ -19,6 +19,11 @@ export default function LoginPage() {
   const { signInUser, isFirebaseConfigured } = useAuth();
   const router = useRouter();
   const { toast } = useToast();
+  const [isClient, setIsClient] = useState(false);
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -54,7 +59,7 @@ export default function LoginPage() {
             Entrez votre email et mot de passe pour vous connecter.
           </CardDescription>
         </CardHeader>
-        {!isFirebaseConfigured && (
+        {isClient && !isFirebaseConfigured && (
             <div className="px-6 pb-4">
                 <Alert variant="destructive">
                     <Terminal className="h-4 w-4" />
@@ -69,15 +74,15 @@ export default function LoginPage() {
           <CardContent className="grid gap-4">
             <div className="grid gap-2">
               <Label htmlFor="email">Email</Label>
-              <Input id="email" type="email" placeholder="m@exemple.com" required value={email} onChange={e => setEmail(e.target.value)} disabled={!isFirebaseConfigured}/>
+              <Input id="email" type="email" placeholder="m@exemple.com" required value={email} onChange={e => setEmail(e.target.value)} disabled={isClient && !isFirebaseConfigured}/>
             </div>
             <div className="grid gap-2">
               <Label htmlFor="password">Mot de passe</Label>
-              <Input id="password" type="password" required value={password} onChange={e => setPassword(e.target.value)} disabled={!isFirebaseConfigured}/>
+              <Input id="password" type="password" required value={password} onChange={e => setPassword(e.target.value)} disabled={isClient && !isFirebaseConfigured}/>
             </div>
           </CardContent>
           <CardFooter className="flex flex-col gap-4">
-            <Button className="w-full" type="submit" disabled={loading || !isFirebaseConfigured}>
+            <Button className="w-full" type="submit" disabled={loading || (isClient && !isFirebaseConfigured)}>
               {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Se connecter
             </Button>
