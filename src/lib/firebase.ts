@@ -14,18 +14,19 @@ const firebaseConfig = {
   appId: "YOUR_APP_ID"
 };
 
-// Initialise Firebase
-const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
+// Vérifie si la configuration est valide avant d'initialiser
+const isConfigValid = firebaseConfig.apiKey && firebaseConfig.apiKey !== "YOUR_API_KEY";
 
-const auth = getAuth(app);
-const db = getFirestore(app);
+// Initialise Firebase uniquement si la configuration est valide
+const app = isConfigValid && !getApps().length ? initializeApp(firebaseConfig) : (getApps().length ? getApp() : null);
+
+const auth = app ? getAuth(app) : null;
+const db = app ? getFirestore(app) : null;
 
 // --- GESTION DES RÔLES ---
 // Pour désigner un ou plusieurs administrateurs, ajoutez leur email ici.
-// C'est une méthode simple et sécurisée pour commencer.
-// Pour une sécurité accrue, vous pourriez utiliser les "Custom Claims" de Firebase.
 const ADMIN_EMAILS = [
-    'remplacez-ce-texte-par-votre-email@exemple.com', // <-- Ajoutez votre email admin créé dans la console Firebase ici
+    'votre-email-admin@exemple.com', // <-- Remplacez par votre email admin créé dans la console Firebase
 ];
 
 const isAdmin = (email: string | null | undefined): boolean => {
@@ -34,4 +35,4 @@ const isAdmin = (email: string | null | undefined): boolean => {
 }
 
 
-export { app, auth, db, isAdmin };
+export { app, auth, db, isAdmin, isConfigValid };

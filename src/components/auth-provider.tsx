@@ -3,8 +3,10 @@
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { onAuthStateChanged, User, signOut, signInWithEmailAndPassword, createUserWithEmailAndPassword } from 'firebase/auth';
-import { auth, isAdmin as checkIsAdmin } from '@/lib/firebase';
+import { auth, isAdmin as checkIsAdmin, isConfigValid } from '@/lib/firebase';
 import { usePathname, useRouter } from 'next/navigation';
+import { Alert, AlertDescription, AlertTitle } from './ui/alert';
+import { Terminal } from 'lucide-react';
 
 interface AuthContextType {
   user: User | null;
@@ -22,6 +24,21 @@ const AuthContext = createContext<AuthContextType>({
   signOutUser: async () => {},
 });
 
+const FirebaseWarning = () => (
+    <div className="flex min-h-screen items-center justify-center bg-background p-4">
+        <Alert variant="destructive" className="max-w-lg">
+            <Terminal className="h-4 w-4" />
+            <AlertTitle>Configuration Firebase manquante !</AlertTitle>
+            <AlertDescription>
+                <p>L'application n'a pas pu se connecter à Firebase. Veuillez remplir les informations de votre projet dans le fichier :</p>
+                <code className="my-2 block rounded-md bg-muted p-2 text-sm font-mono">src/lib/firebase.ts</code>
+                <p>Vous pouvez obtenir ces informations depuis les paramètres de votre projet dans la console Firebase.</p>
+            </AlertDescription>
+        </Alert>
+    </div>
+)
+
+
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
@@ -30,6 +47,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const pathname = usePathname();
 
   useEffect(() => {
+    if (!isConfigValid || !auth) {
+        setLoading(false);
+        return;
+    }
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       setUser(user);
       setIsAdmin(checkIsAdmin(user?.email));
@@ -49,13 +70,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, [router, pathname]);
 
   const signInUser = (email: string, pass: string) => {
+    if (!auth) return Promise.reject(new Error("Firebase not configured."));
     return signInWithEmailAndPassword(auth, email, pass);
   };
   
   const signOutUser = () => {
+    if (!auth) return Promise.reject(new Error("Firebase not configured."));
     return signOut(auth);
   };
-
 
   const value = {
     user,
@@ -64,6 +86,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     signInUser,
     signOutUser,
   };
+
+  if (!isConfigValid) {
+    return <FirebaseWarning />;
+  }
 
   if(loading) {
     return (
