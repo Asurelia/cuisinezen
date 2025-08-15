@@ -2,7 +2,7 @@
 'use client';
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { onAuthStateChanged, User, signOut, signInWithEmailAndPassword, createUserWithEmailAndPassword } from 'firebase/auth';
+import { onAuthStateChanged, User, signOut, signInWithEmailAndPassword } from 'firebase/auth';
 import { auth, isAdmin as checkIsAdmin, isConfigValid } from '@/lib/firebase';
 import { usePathname, useRouter } from 'next/navigation';
 import { Alert, AlertDescription, AlertTitle } from './ui/alert';
@@ -38,36 +38,38 @@ const FirebaseWarning = () => (
     </div>
 )
 
-
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [configChecked, setConfigChecked] = useState(false);
   const router = useRouter();
   const pathname = usePathname();
 
   useEffect(() => {
-    if (!isConfigValid) {
-      setLoading(false);
-      return;
+    // This effect runs only on the client, ensuring `isConfigValid` is checked post-hydration.
+    if (isConfigValid) {
+        const unsubscribe = onAuthStateChanged(auth!, (user) => {
+            setUser(user);
+            setIsAdmin(checkIsAdmin(user?.email));
+            setLoading(false);
+
+            const isAuthPage = pathname.startsWith('/login') || pathname.startsWith('/signup');
+            
+            if (user && isAuthPage) {
+                router.push('/inventory');
+            }
+            if (!user && !isAuthPage && pathname !== '/') {
+                router.push('/login');
+            }
+        });
+
+        setConfigChecked(true);
+        return () => unsubscribe();
+    } else {
+        setLoading(false);
+        setConfigChecked(true);
     }
-
-    const unsubscribe = onAuthStateChanged(auth!, (user) => {
-      setUser(user);
-      setIsAdmin(checkIsAdmin(user?.email));
-      setLoading(false);
-
-      const isAuthPage = pathname.startsWith('/login') || pathname.startsWith('/signup');
-      
-      if (user && isAuthPage) {
-        router.push('/inventory');
-      }
-      if (!user && !isAuthPage) {
-        router.push('/login');
-      }
-    });
-
-    return () => unsubscribe();
   }, [router, pathname]);
 
   const signInUser = (email: string, pass: string) => {
@@ -76,11 +78,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
   
   const signOutUser = () => {
-    if (!isConfigValid) {
+    if (!isConfigValid || !auth) {
         router.push('/login');
         return Promise.resolve();
     }
-    if (!auth) return Promise.reject(new Error("Firebase not configured."));
     return signOut(auth);
   };
 
@@ -92,18 +93,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     signOutUser,
   };
 
-  if (!isConfigValid) {
-    return <FirebaseWarning />;
-  }
-
-  if (loading) {
+  if (!configChecked || loading) {
       return (
           <div className="flex items-center justify-center min-h-screen">
               <p>Chargement de l'application...</p>
           </div>
       )
   }
-
+  
+  if (!isConfigValid) {
+    return <FirebaseWarning />;
+  }
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
