@@ -27,8 +27,7 @@ export default function AppLayout({
   if (loading) {
     return (
         <div className="flex items-center justify-center min-h-screen">
-            {/* Vous pouvez mettre un spinner ou un skeleton screen ici */}
-            <p>Chargement...</p>
+            <p>Chargement de l'application...</p>
         </div>
     )
   }

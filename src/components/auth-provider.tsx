@@ -42,35 +42,36 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
-  const [configChecked, setConfigChecked] = useState(false);
   const router = useRouter();
   const pathname = usePathname();
 
   useEffect(() => {
-    // This effect runs only on the client, ensuring `isConfigValid` is checked post-hydration.
-    if (isConfigValid) {
-        const unsubscribe = onAuthStateChanged(auth!, (user) => {
-            setUser(user);
-            setIsAdmin(checkIsAdmin(user?.email));
-            setLoading(false);
-
-            const isAuthPage = pathname.startsWith('/login') || pathname.startsWith('/signup');
-            
-            if (user && isAuthPage) {
-                router.push('/inventory');
-            }
-            if (!user && !isAuthPage && pathname !== '/') {
-                router.push('/login');
-            }
-        });
-
-        setConfigChecked(true);
-        return () => unsubscribe();
-    } else {
+    if (!isConfigValid) {
         setLoading(false);
-        setConfigChecked(true);
+        return;
     }
-  }, [router, pathname]);
+    
+    const unsubscribe = onAuthStateChanged(auth!, (user) => {
+        setUser(user);
+        setIsAdmin(checkIsAdmin(user?.email));
+        setLoading(false);
+    });
+
+    return () => unsubscribe();
+  }, []);
+
+  useEffect(() => {
+    if (loading) return; // Wait until loading is false to check for redirects
+
+    const isAuthPage = pathname.startsWith('/login') || pathname.startsWith('/signup');
+    
+    if (user && isAuthPage) {
+        router.push('/inventory');
+    }
+    if (!user && !isAuthPage && pathname !== '/') {
+        router.push('/login');
+    }
+  }, [user, loading, pathname, router]);
 
   const signInUser = (email: string, pass: string) => {
     if (!auth) return Promise.reject(new Error("Firebase not configured."));
@@ -93,15 +94,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     signOutUser,
   };
 
-  if (!configChecked || loading) {
-      return (
-          <div className="flex items-center justify-center min-h-screen">
-              <p>Chargement de l'application...</p>
-          </div>
-      )
-  }
-  
-  if (!isConfigValid) {
+  if (!isConfigValid && !pathname.startsWith('/login')) {
     return <FirebaseWarning />;
   }
 
