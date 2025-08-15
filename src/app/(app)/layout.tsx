@@ -2,7 +2,7 @@
 'use client';
 
 import { SidebarProvider, Sidebar, SidebarInset, SidebarTrigger, SidebarMenu, SidebarMenuItem, SidebarMenuButton } from '@/components/ui/sidebar';
-import { Home, UtensilsCrossed, BookHeart, ShoppingCart, LogOut, User } from 'lucide-react';
+import { Home, UtensilsCrossed, BookHeart, ShoppingCart, LogOut, User, BarChart3 } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useAuth } from '@/components/auth-provider';
@@ -86,6 +86,14 @@ export default function AppLayout({
               <Link href="/shopping-list">
                 <ShoppingCart />
                 <span>Liste de courses</span>
+              </Link>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+          <SidebarMenuItem>
+            <SidebarMenuButton asChild tooltip="Analytics" isActive={isActive('/analytics')}>
+              <Link href="/analytics">
+                <BarChart3 />
+                <span>Analytics</span>
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>

@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback, useTransition, useRef } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import Image from 'next/image';
+import { OptimizedImage } from '@/components/ui/optimized-image';
 import {
   Dialog,
   DialogContent,
@@ -32,8 +32,11 @@ import { fr } from 'date-fns/locale';
 import type { Product, Category } from '@/lib/types';
 import { categories, categoryNames } from '@/lib/types';
 import { getCategorySuggestion } from '@/lib/actions';
+import { getBlurPlaceholder } from '@/lib/image-utils';
 import { useToast } from '@/hooks/use-toast';
 import { BarcodeScannerDialog } from './barcode-scanner-dialog';
+import { analyticsService } from '@/lib/analytics';
+import { performanceService } from '@/lib/performance';
 
 interface AddProductDialogProps {
   isOpen: boolean;
@@ -111,23 +114,55 @@ export function AddProductDialog({ isOpen, onOpenChange, onAddProduct }: AddProd
 
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
-    const newProduct: Omit<Product, 'id'> = {
-      name: values.name,
+    const startTime = performance.now();
+    const traceId = performanceService.startTrace('product_creation', {
+      has_image: values.imageUrl ? 'true' : 'false',
       category: values.category,
-      imageUrl: values.imageUrl,
-      batches: [
-        {
-          id: new Date().toISOString(),
-          quantity: values.quantity,
-          expiryDate: values.expiryDate || null,
-        },
-      ],
-    };
-    onAddProduct(newProduct);
-    closeDialog();
+      has_expiry: values.expiryDate ? 'true' : 'false'
+    });
+
+    try {
+      const newProduct: Omit<Product, 'id'> = {
+        name: values.name,
+        category: values.category,
+        imageUrl: values.imageUrl,
+        batches: [
+          {
+            id: new Date().toISOString(),
+            quantity: values.quantity,
+            expiryDate: values.expiryDate || null,
+          },
+        ],
+      };
+
+      // Tracker l'ajout de produit
+      analyticsService.trackProductAdded(
+        values.name,
+        values.category,
+        values.quantity
+      );
+
+      onAddProduct(newProduct);
+      
+      const endTime = performance.now();
+      performanceService.stopTrace(traceId, {
+        creation_time_ms: endTime - startTime,
+        product_quantity: values.quantity
+      });
+
+      closeDialog();
+    } catch (error) {
+      performanceService.stopTrace(traceId, {
+        creation_failed: 1
+      });
+      throw error;
+    }
   }
 
   const handleBarcodeScanned = (result: string) => {
+    // Tracker le scan de code-barres
+    analyticsService.trackProductScanned('Produit inconnu', result, false);
+    
     toast({
         title: "Code-barres scanné !",
         description: `Code détecté : ${result}. La recherche de produit n'est pas encore implémentée.`
@@ -162,7 +197,14 @@ export function AddProductDialog({ isOpen, onOpenChange, onAddProduct }: AddProd
                         onClick={() => fileInputRef.current?.click()}
                     >
                         {imagePreview ? (
-                        <Image src={imagePreview} alt="Aperçu du produit" fill className="object-cover rounded-md" />
+                        <OptimizedImage 
+                          src={imagePreview} 
+                          alt="Aperçu du produit" 
+                          fill 
+                          className="object-cover rounded-md"
+                          blurDataURL={getBlurPlaceholder('food')}
+                          priority
+                        />
                         ) : (
                         <>
                             <ImagePlus className="h-6 w-6 mb-1"/>

@@ -8,6 +8,7 @@ import { getRecipes, getInventory } from '@/lib/data';
 import { RecipePagination } from '@/components/recipe-pagination';
 import { RecipeSearch } from '@/components/recipe-search';
 import { AddRecipeButton } from '@/components/add-recipe-button';
+import { RecipesImagePreloader } from '@/components/image-preloader';
 
 export const metadata: Metadata = {
   title: 'Mes Recettes',
@@ -42,6 +43,9 @@ export default function RecipesPage({
 
   return (
     <div className="flex min-h-screen w-full flex-col">
+      {/* Préchargement des images critiques */}
+      <RecipesImagePreloader recipes={filteredRecipes} />
+      
       <header className="sticky top-0 z-10 flex h-16 items-center gap-4 border-b bg-background/80 px-4 backdrop-blur-sm md:px-6 -mx-4 md:-mx-6">
         <h1 className="text-xl font-bold tracking-tight text-foreground">
           Mes Recettes

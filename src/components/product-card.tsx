@@ -1,4 +1,3 @@
-import Image from 'next/image';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { CalendarClock, Tag, AlertCircle } from 'lucide-react';
@@ -12,7 +11,9 @@ import {
 } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { OptimizedImage } from '@/components/ui/optimized-image';
 import type { Product, Batch } from '@/lib/types';
+import { getBlurPlaceholder } from '@/lib/image-utils';
 import { Separator } from './ui/separator';
 import { ProductCardActions } from './product-card-actions';
 
@@ -79,12 +80,15 @@ export function ProductCard({ product, onEdit, onDelete }: ProductCardProps) {
   return (
     <Card className="flex h-full flex-col overflow-hidden transition-shadow duration-300 hover:shadow-lg animate-fade-in">
       <CardHeader className="relative p-0">
-        <Image
+        <OptimizedImage
           src={product.imageUrl || `https://placehold.co/400x300.png?text=${encodeURIComponent(product.name)}`}
           alt={product.name}
           width={400}
           height={300}
           className="aspect-[4/3] w-full object-cover"
+          blurDataURL={getBlurPlaceholder('food')}
+          sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+          fallbackSrc={`https://placehold.co/400x300/f3f4f6/6b7280.png?text=${encodeURIComponent(product.name)}`}
         />
         {mostUrgentBatch && <ExpiryAlertBadge batch={mostUrgentBatch} />}
         <div className="absolute bottom-0 w-full bg-gradient-to-t from-black/80 to-transparent p-4 pt-12">

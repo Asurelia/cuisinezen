@@ -1,66 +1,172 @@
-Créez une application complète de gestion d'inventaire de cuisine nommée "CuisineZen" en utilisant Next.js avec le App Router, TypeScript, Tailwind CSS, et les composants ShadCN. L'application doit être performante, visuellement soignée et en français.
+# CuisineZen 🍽️
 
-**Architecture et Principes Clés :**
-1.  **Server Components par défaut :** La plupart des pages et des listes (`Inventaire`, `Recettes`, `Menus`, `Liste de courses`) doivent être des Server Components pour une performance optimale. L'interactivité (dialogues, boutons, etc.) sera encapsulée dans de petits Client Components.
-2.  **Hooks personnalisés :** Utilisez un hook `useLocalStorage` pour gérer le state côté client (menus, inventaire, recettes) de manière persistante, en veillant à éviter les erreurs d'hydratation.
-3.  **IA avec Genkit :** Intégrez Genkit pour deux fonctionnalités :
-    *   Suggérer une catégorie de produit à partir du nom.
-    *   Extraire les plats d'un menu hebdomadaire depuis une image.
-4.  **Style :** Le style sera géré par Tailwind CSS et un thème vert et sobre défini dans `globals.css`. Le design doit être moderne, avec des cartes, des badges et des alertes visuellement cohérentes. La police principale sera "Inter".
+Application de gestion intelligente pour restaurant - Inventaire, Recettes, Menus et Analytics avec IA.
 
-**Pages et Fonctionnalités :**
+## 🚀 Fonctionnalités
 
-**1. Navigation Principale (Layout `src/app/(app)/layout.tsx`)**
-*   Une barre de navigation latérale (Sidebar) avec des icônes et des libellés pour les sections :
-    *   Inventaire (icône `Home`)
-    *   Menus (icône `UtensilsCrossed`)
-    *   Recettes (icône `BookHeart`)
-    *   Liste de courses (icône `ShoppingCart`)
-*   La sidebar doit être responsive et se transformer en menu "off-canvas" sur mobile.
+### ✨ Gestion d'Inventaire
+- **Scanner codes-barres** avec @zxing/library
+- **Gestion des lots** avec dates d'expiration
+- **Alertes automatiques** de péremption
+- **Catégorisation automatique** par IA
+- **Photos optimisées** avec Firebase Storage
 
-**2. Page Inventaire (`/inventory`)**
-*   **Affichage :**
-    *   Les produits sont groupés par catégories (`Frais`, `Surgelé`, `Épicerie`, `Boissons`, `Entretien`) dans des accordéons.
-    *   Chaque catégorie affiche une icône distinctive et le nombre de produits.
-    *   Les produits sont affichés sous forme de cartes (`ProductCard`).
-*   **Carte Produit (`ProductCard`) :**
-    *   Affiche une image, le nom, la quantité totale.
-    *   Un badge d'alerte s'affiche en haut à droite de l'image si un lot expire dans 7 jours (orange) ou 3 jours (rouge).
-    *   Liste les lots avec leur quantité et date de péremption.
-    *   Boutons "Modifier" et "Supprimer".
-*   **Actions :**
-    *   Un bouton "Ajouter un produit" ouvre un dialogue (`AddProductDialog`).
-    *   Le dialogue d'ajout permet de scanner un code-barres (UI seulement) et d'uploader une image. L'IA suggère une catégorie en fonction du nom du produit.
-    *   Le dialogue de modification (`EditProductDialog`) permet de gérer les lots (ajouter, modifier, supprimer).
-    *   La suppression d'un produit affiche un toast avec une option "Annuler".
+### 📱 Interface Moderne
+- **Design responsive** mobile-first
+- **Thème adaptatif** clair/sombre
+- **Composants accessibles** Radix UI
+- **Performance optimisée** Next.js 15
 
-**3. Page Recettes (`/recipes`)**
-*   **Affichage :**
-    *   Une grille de cartes de recettes (`RecipeCard`).
-    *   La page est paginée (8 recettes par page) et dispose d'une barre de recherche qui filtre les recettes par nom.
-*   **Carte Recette (`RecipeCard`) :**
-    *   Affiche une image, le nom, une description courte, le nombre d'ingrédients, les temps de préparation/cuisson et la difficulté.
-    *   Boutons "Modifier" et "Supprimer".
-*   **Actions :**
-    *   Un bouton "Ajouter une recette" ouvre un dialogue (`RecipeFormDialog`).
-    *   Le dialogue permet de lier des ingrédients à des produits existants dans l'inventaire.
+### 🤖 Intelligence Artificielle
+- **Extraction de menus** depuis photos (Google Gemini)
+- **Suggestions automatiques** de catégories
+- **Recommandations personnalisées**
 
-**4. Page Menus (`/menu`)**
-*   **Fonctionnalités :**
-    *   **Import par IA :** Un bouton permet à l'utilisateur de charger une image d'un menu. L'IA analyse l'image et crée une planification pour la semaine.
-    *   **Création Manuelle :** Un bouton "Nouveau Menu" ouvre un dialogue (`CreateMenuDialog`) pour planifier les repas en choisissant parmi les recettes existantes.
-*   **Affichage :**
-    *   Les menus créés ou importés sont affichés dans une liste en accordéon.
-    *   Chaque menu affiche les plats par jour (Midi, Soir).
-    *   Si un plat correspond à une recette existante, une icône `BookHeart` apparaît avec un lien vers la recette.
+### 🔥 Firebase Complet
+- **Authentification** sécurisée
+- **Firestore** synchronisation temps réel
+- **Storage** optimisé pour images
+- **Analytics** et monitoring
+- **Cloud Functions** automatisées
 
-**5. Page Liste de Courses (`/shopping-list`)**
-*   **Logique :**
-    *   Génère automatiquement une liste d'achats en se basant sur les recettes planifiées dans les menus et l'état actuel de l'inventaire.
-    *   Calcule les quantités manquantes pour chaque ingrédient.
-*   **Affichage :**
-    *   Les produits à acheter sont groupés par catégorie.
-    *   Chaque article a une case à cocher et affiche la quantité manquante.
-    *   **Suggestions :** Une section distincte suggère des achats récurrents (ex: café, beurre, sel) s'ils sont absents de l'inventaire.
+### 📊 Analytics Restaurant
+- **Dashboard métiers** temps réel
+- **Rapports automatiques** hebdomadaires/mensuels
+- **Analyse des coûts** et marges
+- **Alertes intelligentes**
 
-Le projet doit être initialisé avec des données de démonstration (`initial-data.ts`) pour l'inventaire et les recettes afin que l'application soit immédiatement fonctionnelle et peuplée.
+## 🛠️ Technologies
+
+- **Frontend**: Next.js 15, React 18, TypeScript
+- **UI**: Tailwind CSS, Radix UI, Lucide Icons
+- **Backend**: Firebase (Auth, Firestore, Storage, Functions)
+- **IA**: Google Genkit avec Gemini 2.0 Flash
+- **Charts**: Recharts pour visualisations
+- **Forms**: React Hook Form + Zod validation
+
+## ⚡ Installation Rapide
+
+```bash
+# Cloner le projet
+git clone https://github.com/votre-repo/cuisinezen.git
+cd cuisinezen
+
+# Installer les dépendances
+npm install
+
+# Configurer l'environnement
+cp .env.local.example .env.local
+# Éditer .env.local avec vos clés Firebase
+
+# Démarrer le développement
+npm run dev
+```
+
+Ouvrir [http://localhost:3000](http://localhost:3000)
+
+## 📚 Documentation Complète
+
+- [🔧 Guide de Migration](docs/MIGRATION_GUIDE.md)
+- [🏗️ Architecture](docs/ARCHITECTURE.md)
+- [📖 API Documentation](docs/API_DOCUMENTATION.md)
+- [🔒 Sécurité](docs/SECURITY.md)
+- [⚡ Performance](docs/PERFORMANCE.md)
+- [🔥 Configuration Firebase](docs/FIREBASE_SETUP.md)
+- [📊 Audit Complet](docs/AUDIT_COMPLET.md)
+
+## 🚦 Scripts Disponibles
+
+```bash
+npm run dev          # Développement avec Turbopack
+npm run build        # Build production
+npm run start        # Serveur production
+npm run lint         # Linting ESLint
+npm run typecheck    # Vérification TypeScript
+npm run genkit:dev   # Serveur IA développement
+npm run genkit:watch # IA en mode watch
+```
+
+## 🏗️ Structure du Projet
+
+```
+src/
+├── app/                 # Pages Next.js App Router
+│   ├── (app)/          # Routes principales
+│   │   ├── inventory/  # Gestion inventaire
+│   │   ├── recipes/    # Gestion recettes
+│   │   ├── menu/       # Planification menus
+│   │   ├── shopping-list/ # Listes courses
+│   │   ├── analytics/  # Dashboard analytics
+│   │   └── account/    # Gestion compte
+│   ├── (auth)/         # Authentification
+│   └── api/            # API routes
+├── components/         # Composants React
+│   ├── ui/            # Composants UI base
+│   └── analytics/     # Composants analytics
+├── hooks/             # Hooks personnalisés
+├── lib/               # Utilitaires et config
+├── services/          # Services Firebase
+└── ai/                # Intelligence artificielle
+```
+
+## 🔒 Sécurité
+
+- Variables d'environnement pour toutes les clés
+- Règles Firebase sécurisées
+- Validation côté serveur et client
+- Gestion des permissions utilisateurs
+- Audit de sécurité complet disponible
+
+## 📈 Performance
+
+- Lazy loading automatique des images
+- Optimisation bundles avec Next.js
+- Cache Firebase intelligent
+- Monitoring temps réel des performances
+- Core Web Vitals optimisés
+
+## 🎯 Utilisation
+
+### Démarrage Rapide
+1. **Inventaire**: Scanner ou ajouter produits manuellement
+2. **Recettes**: Créer avec photos et ingrédients
+3. **Analytics**: Consulter le dashboard pour insights
+4. **Alertes**: Recevoir notifications d'expiration
+
+### Multi-utilisateurs
+- Jusqu'à 5-6 utilisateurs simultanés
+- Permissions admin/manager/employee
+- Synchronisation temps réel
+- Gestion des rôles intégrée
+
+## 💰 Coûts Firebase
+
+Optimisé pour rester dans le **Free Tier**:
+- Firestore: 50K lectures/jour, 20K écritures/jour
+- Storage: 5GB, 1GB transfert/jour
+- Functions: 2M invocations/mois
+- Analytics: Illimité
+
+**Estimation**: 0.10-0.50€/mois avec utilisation normale
+
+## 🤝 Contribution
+
+Voir [CONTRIBUTING.md](CONTRIBUTING.md) pour:
+- Standards de code
+- Workflow Git
+- Tests et qualité
+- Soumission de PR
+
+## 📄 Licence
+
+MIT - Voir [LICENSE](LICENSE)
+
+## 🆘 Support
+
+- Issues: [GitHub Issues](https://github.com/votre-repo/cuisinezen/issues)
+- Documentation: [docs/](docs/)
+- Audit complet: [AUDIT_COMPLET.md](docs/AUDIT_COMPLET.md)
+
+---
+
+**CuisineZen** - Transformez la gestion de votre restaurant avec l'intelligence artificielle 🚀

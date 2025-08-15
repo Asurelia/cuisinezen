@@ -1,12 +1,13 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { PlusCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { AddProductDialog } from '@/components/add-product-dialog';
 import { EditProductDialog } from '@/components/edit-product-dialog';
 import { InventoryList } from '@/components/inventory-list';
+import { InventoryImagePreloader } from '@/components/image-preloader';
 import type { Product } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { ToastAction } from '@/components/ui/toast';
@@ -22,6 +23,8 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
+import { analyticsService } from '@/lib/analytics';
+import { performanceService } from '@/lib/performance';
 
 export default function InventoryPage() {
   const [inventory, setInventory] = useLocalStorage<Product[]>('inventory', initialInventory);
@@ -31,6 +34,19 @@ export default function InventoryPage() {
   const [productToDelete, setProductToDelete] = useState<Product | null>(null);
   
   const { toast, dismiss } = useToast();
+
+  useEffect(() => {
+    // Tracker la consultation de l'inventaire
+    const startTime = performance.now();
+    const traceId = performanceService.startInventoryLoad(inventory.length);
+    
+    // Simuler le temps de chargement
+    setTimeout(() => {
+      const endTime = performance.now();
+      performanceService.stopInventoryLoad(traceId, inventory.length, endTime - startTime);
+      analyticsService.trackInventoryView(inventory.length);
+    }, 100);
+  }, [inventory.length]);
 
   const handleAddProduct = (newProduct: Omit<Product, 'id'>) => {
     const productWithId: Product = {
@@ -86,6 +102,9 @@ export default function InventoryPage() {
 
   return (
     <div className="flex min-h-screen w-full flex-col">
+      {/* Préchargement des images critiques */}
+      <InventoryImagePreloader products={inventory} />
+      
       <header className="sticky top-0 z-10 flex h-16 items-center gap-4 border-b bg-background/80 px-4 backdrop-blur-sm md:px-6 -mx-4 md:-mx-6">
         <div className="flex items-center gap-2">
          

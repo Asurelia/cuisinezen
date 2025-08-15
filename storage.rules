@@ -1,0 +1,118 @@
+rules_version = '2';
+
+// Règles Firebase Storage pour CuisineZen
+service firebase.storage {
+  match /b/{bucket}/o {
+    
+    // Fonction pour vérifier si l'utilisateur est authentifié
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    // Fonction pour vérifier si l'utilisateur est admin
+    function isAdmin() {
+      return isAuthenticated() && 
+             request.auth.token.email in ['admin@cuisinezen.com']; // Remplacer par vos emails admin
+    }
+    
+    // Fonction pour valider les images
+    function isValidImage() {
+      return request.resource.size <= 5 * 1024 * 1024 && // Max 5MB
+             request.resource.contentType.matches('image/(jpeg|jpg|png|webp)');
+    }
+    
+    // Fonction pour vérifier si c'est le propriétaire du fichier
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+    
+    // === RÈGLES POUR LES PRODUITS ===
+    
+    // Dossier principal des produits
+    match /product/{imageId}/{size} {
+      // Lecture : Tout le monde peut voir les images de produits
+      allow read: if true;
+      
+      // Écriture : Seuls les utilisateurs authentifiés peuvent uploader
+      allow write: if isAuthenticated() && isValidImage();
+      
+      // Suppression : Admins seulement
+      allow delete: if isAdmin();
+    }
+    
+    // Métadonnées des produits (optionnel)
+    match /product/{imageId}/metadata.json {
+      allow read: if true;
+      allow write: if isAuthenticated();
+      allow delete: if isAdmin();
+    }
+    
+    // === RÈGLES POUR LES RECETTES ===
+    
+    // Dossier principal des recettes
+    match /recipe/{imageId}/{size} {
+      // Lecture : Tout le monde peut voir les images de recettes
+      allow read: if true;
+      
+      // Écriture : Seuls les utilisateurs authentifiés peuvent uploader
+      allow write: if isAuthenticated() && isValidImage();
+      
+      // Suppression : Admins seulement
+      allow delete: if isAdmin();
+    }
+    
+    // Métadonnées des recettes (optionnel)
+    match /recipe/{imageId}/metadata.json {
+      allow read: if true;
+      allow write: if isAuthenticated();
+      allow delete: if isAdmin();
+    }
+    
+    // === RÈGLES POUR LES IMAGES DE PROFIL (optionnel) ===
+    
+    match /profile/{userId}/{imageId}/{size} {
+      // Lecture : Tout le monde peut voir les avatars
+      allow read: if true;
+      
+      // Écriture : Seul le propriétaire ou admin
+      allow write: if (isOwner(userId) || isAdmin()) && isValidImage();
+      
+      // Suppression : Seul le propriétaire ou admin
+      allow delete: if isOwner(userId) || isAdmin();
+    }
+    
+    // === RÈGLES POUR LES IMAGES TEMPORAIRES ===
+    
+    match /temp/{userId}/{imageId} {
+      // Lecture : Seul le propriétaire
+      allow read: if isOwner(userId);
+      
+      // Écriture : Seul le propriétaire avec validation
+      allow write: if isOwner(userId) && isValidImage();
+      
+      // Suppression : Seul le propriétaire
+      allow delete: if isOwner(userId);
+    }
+    
+    // === RESTRICTIONS GÉNÉRALES ===
+    
+    // Interdire l'accès à la racine
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}
+
+// Instructions de déploiement :
+// 1. Aller dans la console Firebase
+// 2. Section Storage > Rules
+// 3. Copier/coller ce fichier
+// 4. Publier les règles
+//
+// Notes importantes :
+// - Modifier l'email admin dans la fonction isAdmin()
+// - Tester les règles avec l'émulateur Firebase avant la production
+// - Les images sont publiques en lecture pour permettre l'affichage
+// - Seuls les utilisateurs authentifiés peuvent uploader
+// - Seuls les admins peuvent supprimer (protection contre les suppressions accidentelles)
+// - Validation automatique de la taille (5MB max) et du type de fichier

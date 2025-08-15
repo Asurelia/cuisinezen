@@ -5,7 +5,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useForm, useFieldArray, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import Image from 'next/image';
+import { OptimizedImage } from '@/components/ui/optimized-image';
 import {
   Dialog,
   DialogContent,
@@ -27,7 +27,10 @@ import {
 import { Label } from '@/components/ui/label';
 import { Trash2, PlusCircle, ImagePlus } from 'lucide-react';
 import type { Recipe, Product, Ingredient, Difficulty } from '@/lib/types';
+import { getBlurPlaceholder } from '@/lib/image-utils';
 import { Separator } from './ui/separator';
+import { analyticsService } from '@/lib/analytics';
+import { performanceService } from '@/lib/performance';
 
 interface RecipeFormDialogProps {
   isOpen: boolean;
@@ -122,18 +125,54 @@ export function RecipeFormDialog({ isOpen, onOpenChange, onSave, recipe, invento
   };
 
   function onSubmit(values: z.infer<typeof formSchema>) {
-    const savedRecipe: Recipe = {
-        id: recipe?.id || new Date().toISOString(),
-        name: values.name,
-        description: values.description || '',
-        imageUrl: values.imageUrl,
-        ingredients: values.ingredients as Ingredient[], // Cast is safe due to zod schema
-        preparationTime: values.preparationTime,
-        cookingTime: values.cookingTime,
-        difficulty: values.difficulty as Difficulty,
-    };
-    onSave(savedRecipe);
-    onOpenChange(false);
+    const startTime = performance.now();
+    const totalCookingTime = (values.preparationTime || 0) + (values.cookingTime || 0);
+    const isNewRecipe = !recipe?.id;
+    
+    const traceId = performanceService.startTrace('recipe_creation', {
+      is_new: isNewRecipe.toString(),
+      ingredients_count: values.ingredients.length.toString(),
+      has_image: values.imageUrl ? 'true' : 'false',
+      difficulty: values.difficulty || 'facile'
+    });
+
+    try {
+      const savedRecipe: Recipe = {
+          id: recipe?.id || new Date().toISOString(),
+          name: values.name,
+          description: values.description || '',
+          imageUrl: values.imageUrl,
+          ingredients: values.ingredients as Ingredient[], // Cast is safe due to zod schema
+          preparationTime: values.preparationTime,
+          cookingTime: values.cookingTime,
+          difficulty: values.difficulty as Difficulty,
+      };
+
+      // Tracker la création de recette
+      if (isNewRecipe) {
+        analyticsService.trackRecipeCreated(
+          values.name,
+          values.ingredients.length,
+          totalCookingTime
+        );
+      }
+
+      onSave(savedRecipe);
+      
+      const endTime = performance.now();
+      performanceService.stopTrace(traceId, {
+        recipe_creation_time_ms: endTime - startTime,
+        ingredients_count: values.ingredients.length,
+        total_cooking_time: totalCookingTime
+      });
+
+      onOpenChange(false);
+    } catch (error) {
+      performanceService.stopTrace(traceId, {
+        recipe_creation_failed: 1
+      });
+      throw error;
+    }
   }
 
   return (
@@ -162,7 +201,14 @@ export function RecipeFormDialog({ isOpen, onOpenChange, onSave, recipe, invento
                     onClick={() => fileInputRef.current?.click()}
                 >
                     {imagePreview ? (
-                    <Image src={imagePreview} alt="Aperçu de la recette" fill className="object-cover rounded-md" />
+                    <OptimizedImage 
+                      src={imagePreview} 
+                      alt="Aperçu de la recette" 
+                      fill 
+                      className="object-cover rounded-md"
+                      blurDataURL={getBlurPlaceholder('recipe')}
+                      priority
+                    />
                     ) : (
                     <>
                         <ImagePlus className="h-8 w-8 mb-1"/>
