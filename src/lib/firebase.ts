@@ -25,7 +25,7 @@ const db = getFirestore(app);
 // C'est une méthode simple et sécurisée pour commencer.
 // Pour une sécurité accrue, vous pourriez utiliser les "Custom Claims" de Firebase.
 const ADMIN_EMAILS = [
-    'admin@cuisinezen.com', // <-- Remplacez par votre email d'administrateur
+    'remplacez-ce-texte-par-votre-email@exemple.com', // <-- Ajoutez votre email admin créé dans la console Firebase ici
 ];
 
 const isAdmin = (email: string | null | undefined): boolean => {
