@@ -1,13 +1,25 @@
 
+'use client';
+
 import { SidebarProvider, Sidebar, SidebarInset, SidebarTrigger, SidebarMenu, SidebarMenuItem, SidebarMenuButton } from '@/components/ui/sidebar';
-import { Home, UtensilsCrossed, BookHeart, ShoppingCart } from 'lucide-react';
+import { Home, UtensilsCrossed, BookHeart, ShoppingCart, LogOut } from 'lucide-react';
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 
 export default function AppLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const pathname = usePathname();
+
+  const isActive = (path: string) => pathname === path;
+
+  const handleLogout = () => {
+    // La logique de déconnexion sera ajoutée ici
+    console.log("Déconnexion...");
+  };
+
   return (
     <SidebarProvider>
       <Sidebar>
@@ -34,7 +46,7 @@ export default function AppLayout({
         </div>
         <SidebarMenu className="flex-1">
           <SidebarMenuItem>
-            <SidebarMenuButton asChild tooltip="Inventaire">
+            <SidebarMenuButton asChild tooltip="Inventaire" isActive={isActive('/inventory')}>
               <Link href="/inventory">
                 <Home />
                 <span>Inventaire</span>
@@ -42,7 +54,7 @@ export default function AppLayout({
             </SidebarMenuButton>
           </SidebarMenuItem>
           <SidebarMenuItem>
-            <SidebarMenuButton asChild tooltip="Menus">
+            <SidebarMenuButton asChild tooltip="Menus" isActive={isActive('/menu')}>
               <Link href="/menu">
                 <UtensilsCrossed />
                 <span>Menus</span>
@@ -50,7 +62,7 @@ export default function AppLayout({
             </SidebarMenuButton>
           </SidebarMenuItem>
           <SidebarMenuItem>
-            <SidebarMenuButton asChild tooltip="Recettes">
+            <SidebarMenuButton asChild tooltip="Recettes" isActive={isActive('/recipes')}>
               <Link href="/recipes">
                 <BookHeart />
                 <span>Recettes</span>
@@ -58,11 +70,19 @@ export default function AppLayout({
             </SidebarMenuButton>
           </SidebarMenuItem>
            <SidebarMenuItem>
-            <SidebarMenuButton asChild tooltip="Liste de courses">
+            <SidebarMenuButton asChild tooltip="Liste de courses" isActive={isActive('/shopping-list')}>
               <Link href="/shopping-list">
                 <ShoppingCart />
                 <span>Liste de courses</span>
               </Link>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+        </SidebarMenu>
+         <SidebarMenu>
+          <SidebarMenuItem>
+            <SidebarMenuButton onClick={handleLogout} tooltip="Déconnexion">
+              <LogOut />
+              <span>Déconnexion</span>
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>
