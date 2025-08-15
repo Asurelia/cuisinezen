@@ -47,11 +47,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const pathname = usePathname();
 
   useEffect(() => {
-    if (!isConfigValid || !auth) {
-        setLoading(false);
-        return;
+    // Si la configuration Firebase n'est pas valide, on simule une session pour le développement.
+    if (!isConfigValid) {
+      console.warn("Firebase config is missing. Running in dev mode with mocked user.");
+      setUser({ email: 'dev@cuisinezen.com' } as User); // Utilisateur fantôme
+      setIsAdmin(true); // On se met admin pour tout voir
+      setLoading(false);
+      return;
     }
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
+
+    const unsubscribe = onAuthStateChanged(auth!, (user) => {
       setUser(user);
       setIsAdmin(checkIsAdmin(user?.email));
       setLoading(false);
@@ -75,6 +80,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
   
   const signOutUser = () => {
+    if (!isConfigValid) {
+        // En mode dev, simuler la déconnexion
+        setUser(null);
+        setIsAdmin(false);
+        router.push('/login');
+        return Promise.resolve();
+    }
     if (!auth) return Promise.reject(new Error("Firebase not configured."));
     return signOut(auth);
   };
@@ -87,17 +99,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     signOutUser,
   };
 
-  if (!isConfigValid) {
+  // Afficher l'avertissement uniquement si le dev mode n'est pas actif
+  if (!isConfigValid && !user) {
     return <FirebaseWarning />;
   }
 
-  if(loading) {
-    return (
-        <div className="flex items-center justify-center min-h-screen">
-            <p>Chargement de l'application...</p>
-        </div>
-    )
+  if (loading) {
+      return (
+          <div className="flex items-center justify-center min-h-screen">
+              <p>Chargement de l'application...</p>
+          </div>
+      )
   }
+
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
