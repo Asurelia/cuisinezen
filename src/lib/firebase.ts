@@ -26,7 +26,7 @@ const db = app ? getFirestore(app) : null;
 // Pour désigner un ou plusieurs administrateurs, ajoutez leur email ici.
 // ▼▼▼▼▼ REMPLACEZ AVEC VOTRE EMAIL D'ADMINISTRATEUR ▼▼▼▼▼
 const ADMIN_EMAILS = [
-    'votre-email-admin@exemple.com',
+    'rafaillac.sylvain@gmail.com',
 ];
 // ▲▲▲▲▲ FIN DE LA ZONE À REMPLACER ▲▲▲▲▲
 
