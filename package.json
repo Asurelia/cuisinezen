@@ -8,8 +8,73 @@
     "genkit:watch": "genkit start -- tsx --watch src/ai/dev.ts",
     "build": "next build",
     "start": "next start",
+    
     "lint": "next lint",
-    "typecheck": "tsc --noEmit"
+    "lint:strict": "eslint . --ext .ts,.tsx,.js,.jsx --max-warnings 0",
+    "lint:fix": "eslint . --ext .ts,.tsx,.js,.jsx --fix",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "typecheck": "tsc --noEmit",
+    
+    "ai:analyze": "tsx src/ai/cuisinezen-ai-agent.ts analyze",
+    "ai:quick": "tsx src/ai/cuisinezen-ai-agent.ts quick",
+    "ai:stats": "tsx src/ai/cuisinezen-ai-agent.ts stats",
+    "ai:scan": "tsx src/ai/test-agent.ts",
+    "ai:tests": "tsx src/ai/test-generators/e2e-generator.ts",
+    "ai:validate": "tsx src/ai/validators/business-validator.ts",
+    "ai:improve": "tsx src/ai/auto-improvement/test-improver.ts",
+    
+    "test": "vitest",
+    "test:ui": "vitest --ui",
+    "test:run": "vitest run",
+    "test:coverage": "vitest run --coverage",
+    "test:watch": "vitest --watch",
+    "test:unit": "vitest run qa-automation/tests/unit",
+    "test:integration": "vitest run qa-automation/tests/integration",
+    "test:mutation": "stryker run qa-automation/configs/stryker.config.json",
+    
+    "test:e2e": "playwright test --config=qa-automation/configs/playwright.config.ts",
+    "test:e2e:ui": "playwright test --config=qa-automation/configs/playwright.config.ts --ui",
+    "test:e2e:headed": "playwright test --config=qa-automation/configs/playwright.config.ts --headed",
+    "test:e2e:debug": "playwright test --config=qa-automation/configs/playwright.config.ts --debug",
+    "test:e2e:inventory": "playwright test --config=qa-automation/configs/playwright.config.ts --project=inventory-flow",
+    "test:e2e:recipes": "playwright test --config=qa-automation/configs/playwright.config.ts --project=recipe-flow",
+    "test:e2e:analytics": "playwright test --config=qa-automation/configs/playwright.config.ts --project=analytics-flow",
+    "test:e2e:barcode": "playwright test --config=qa-automation/configs/playwright.config.ts --project=barcode-scanner",
+    
+    "test:a11y": "playwright test qa-automation/tests/accessibility",
+    "test:visual": "playwright test qa-automation/tests/visual",
+    "test:performance": "vitest run qa-automation/tests/performance",
+    
+    "lighthouse": "lhci autorun --config=qa-automation/configs/lighthouse.config.js",
+    "lighthouse:inventory": "lighthouse http://localhost:3000/inventory --output=json --output-path=qa-automation/reports/lighthouse-inventory.json",
+    "lighthouse:recipes": "lighthouse http://localhost:3000/recipes --output=json --output-path=qa-automation/reports/lighthouse-recipes.json",
+    "lighthouse:analytics": "lighthouse http://localhost:3000/analytics --output=json --output-path=qa-automation/reports/lighthouse-analytics.json",
+    
+    "security:scan": "semgrep --config=auto .",
+    "security:secrets": "gitleaks detect --source=. --verbose",
+    "security:audit": "npm audit --audit-level=moderate",
+    "security:firebase": "firebase deploy --only=firestore:rules --dry-run",
+    
+    "bundle:analyze": "cross-env ANALYZE=true npm run build",
+    "bundle:stats": "npx webpack-bundle-analyzer .next/static/chunks/*.js",
+    
+    "qa:scan-components": "node qa-automation/scanners/component-scanner.js",
+    "qa:generate-tests": "node qa-automation/agents/generators/test-generator.js",
+    "qa:ai-audit": "node qa-automation/agents/analyzers/ai-auditor.js",
+    
+    "gates:code-quality": "npm run lint:strict && npm run typecheck && npm run format:check",
+    "gates:security": "npm run security:scan && npm run security:secrets && npm run security:audit",
+    "gates:testing": "npm run test:coverage && npm run test:mutation",
+    "gates:e2e": "npm run test:e2e && npm run test:a11y",
+    "gates:performance": "npm run lighthouse && npm run test:performance",
+    "gates:all": "npm run gates:code-quality && npm run gates:security && npm run gates:testing && npm run gates:e2e && npm run gates:performance",
+    "gates:check": "node qa-automation/gates/gate-checker.js",
+    "gates:report": "node qa-automation/gates/gate-reporter.js",
+    
+    "ci:setup": "npm ci && npx playwright install",
+    "ci:test": "npm run gates:all",
+    "ci:deploy": "npm run build && firebase deploy"
   },
   "dependencies": {
     "@genkit-ai/googleai": "^1.14.1",
@@ -63,9 +128,39 @@
     "@types/node": "^20",
     "@types/react": "^18",
     "@types/react-dom": "^18",
+    
+    "@axe-core/playwright": "^4.9.0",
+    "@lhci/cli": "^0.14.0",
+    "@playwright/test": "^1.48.0",
+    
+    "@stryker-mutator/core": "^8.8.0",
+    "@stryker-mutator/vitest-runner": "^8.8.0",
+    "@stryker-mutator/typescript-checker": "^8.8.0",
+    
+    "@testing-library/jest-dom": "^6.6.3",
+    "@testing-library/react": "^16.1.0",
+    "@testing-library/user-event": "^14.5.2",
+    
+    "@vitejs/plugin-react": "^4.3.3",
+    "@vitest/coverage-v8": "^2.1.3",
+    "@vitest/ui": "^2.1.3",
+    
+    "cross-env": "^7.0.3",
+    "eslint": "^8.57.1",
+    "eslint-config-next": "15.3.3",
+    "eslint-plugin-jsx-a11y": "^6.10.2",
+    "eslint-plugin-security": "^3.0.1",
+    "fast-check": "^3.24.0",
     "genkit-cli": "^1.14.1",
+    "gitleaks": "^8.19.3",
+    "jsdom": "^25.0.1",
     "postcss": "^8",
+    "prettier": "^3.3.3",
+    "semgrep": "^1.91.0",
     "tailwindcss": "^3.4.1",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vitest": "^2.1.3",
+    "vitest-mock-extended": "^2.0.2",
+    "webpack-bundle-analyzer": "^4.10.2"
   }
 }
