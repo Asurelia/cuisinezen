@@ -7,7 +7,6 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useAuth } from '@/components/auth-provider';
 import { useRouter } from 'next/navigation';
-import { useAuthSession } from '@/hooks/use-auth-session';
 
 export default function AppLayout({
   children,
@@ -15,11 +14,8 @@ export default function AppLayout({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
-  const { user, loading, signOutUser } = useAuth();
+  const { signOutUser } = useAuth();
   const router = useRouter();
-
-  // Custom hook to handle session logic and redirection
-  useAuthSession();
 
   const isActive = (path: string) => pathname === path;
 
@@ -27,14 +23,6 @@ export default function AppLayout({
     await signOutUser();
     router.push('/login');
   };
-
-  if (loading) {
-    return (
-        <div className="flex items-center justify-center min-h-screen">
-            <p>Chargement de l'application...</p>
-        </div>
-    )
-  }
 
   return (
     <SidebarProvider>
