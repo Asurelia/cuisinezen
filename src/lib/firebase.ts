@@ -13,8 +13,8 @@ const firebaseConfig: FirebaseOptions = {
   appId: "1:696328893008:web:d1635f46b7095ba07d5755"
 };
 
-// Vérifie si la configuration est valide (contient une clé API)
-const isConfigValid = firebaseConfig.apiKey && !firebaseConfig.apiKey.startsWith('AIzaSy');
+// Vérifie si la configuration est valide (contient une clé API non vide)
+const isConfigValid = !!firebaseConfig.apiKey;
 
 // Initialise Firebase uniquement si la configuration est valide
 const app = isConfigValid && !getApps().length ? initializeApp(firebaseConfig) : (isConfigValid && getApps().length ? getApp() : null);
