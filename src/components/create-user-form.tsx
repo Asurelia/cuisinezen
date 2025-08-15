@@ -10,6 +10,8 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { useToast } from "@/hooks/use-toast"
 import { Loader2 } from "lucide-react"
+import { getFunctions, httpsCallable } from "firebase/functions";
+import { app } from "@/lib/firebase"
 
 const formSchema = z.object({
   email: z.string().email({ message: "Veuillez entrer un email valide." }),
@@ -31,48 +33,32 @@ export function CreateUserForm() {
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setLoading(true)
     
-    // INFO: Appel à la Firebase Function (à décommenter une fois la fonction déployée)
-    /*
     try {
-      // Remplacez 'YOUR_CLOUD_FUNCTION_URL' par l'URL de votre Firebase Function
-      const response = await fetch('YOUR_CLOUD_FUNCTION_URL', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(values),
-      });
+      const functions = getFunctions(app!, 'europe-west1'); // Assurez-vous que la région correspond à celle de votre fonction
+      const createUser = httpsCallable(functions, 'createUser');
+      const result: any = await createUser(values);
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Une erreur est survenue.');
+      if (result.data.success) {
+          toast({
+            title: "Utilisateur créé !",
+            description: result.data.message || `Le compte pour ${values.email} a été créé.`,
+          })
+          form.reset();
+      } else {
+         throw new Error(result.data.message || "Une erreur inconnue est survenue.");
       }
 
-      toast({
-        title: "Utilisateur créé !",
-        description: `Le compte pour ${values.email} a été créé avec succès.`,
-      })
-      form.reset();
-
     } catch (error: any) {
+      console.error("Erreur lors de l'appel de la fonction:", error);
       toast({
         variant: 'destructive',
         title: "Erreur lors de la création",
-        description: error.message,
+        // L'erreur de la fonction callable a un format spécifique
+        description: error.message || "Une erreur est survenue.",
       })
     } finally {
         setLoading(false)
     }
-    */
-
-    // --- Code de simulation à supprimer ---
-    console.log("Appel simulé de la fonction de création d'utilisateur avec :", values)
-    await new Promise(resolve => setTimeout(resolve, 1500));
-    toast({
-      title: "Simulation Réussie",
-      description: `L'utilisateur ${values.email} aurait été créé. Déployez une Firebase Function pour que cela fonctionne réellement.`,
-    })
-    setLoading(false)
-    form.reset()
-    // --- Fin du code de simulation ---
   }
 
   return (
@@ -84,6 +70,7 @@ export function CreateUserForm() {
           type="email"
           placeholder="nouveau.membre@famille.com"
           {...form.register("email")}
+          disabled={loading}
         />
         {form.formState.errors.email && (
           <p className="text-xs text-red-600">{form.formState.errors.email.message}</p>
@@ -95,6 +82,7 @@ export function CreateUserForm() {
           id="password"
           type="password"
           {...form.register("password")}
+          disabled={loading}
         />
         {form.formState.errors.password && (
           <p className="text-xs text-red-600">{form.formState.errors.password.message}</p>
