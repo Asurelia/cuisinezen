@@ -19,26 +19,27 @@ export const useAuthSession = () => {
   const pathname = usePathname();
 
   useEffect(() => {
-    // Wait until loading is false and firebase config is checked
+    // Wait until loading is false to make decisions
     if (loading) return;
 
     const isAppRoute = APP_ROUTES.some(route => pathname.startsWith(route));
     const isAuthRoute = AUTH_ROUTES.some(route => pathname.startsWith(route));
 
-    // If Firebase is not configured, redirect all app routes to login
+    // If Firebase isn't set up, anyone on an app route gets sent to login.
     if (!isFirebaseConfigured && isAppRoute) {
         router.replace('/login');
         return;
     }
 
+    // This block only runs if Firebase is configured.
     if (isFirebaseConfigured) {
-        // If user is not logged in and tries to access a protected app route
+        // If there's no user and they're on a protected route, redirect to login.
         if (!user && isAppRoute) {
             router.replace('/login');
             return;
         }
     
-        // If user is logged in and tries to access an auth route (like /login)
+        // If there is a user and they're on an auth route (like /login), send them to the app.
         if (user && isAuthRoute) {
             router.replace('/inventory');
             return;
@@ -46,7 +47,4 @@ export const useAuthSession = () => {
     }
 
   }, [user, loading, isFirebaseConfigured, pathname, router]);
-
-  // Return any session-related state if needed by components
-  return { user, loading, isFirebaseConfigured };
 };

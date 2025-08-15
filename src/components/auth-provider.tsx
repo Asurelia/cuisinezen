@@ -1,8 +1,10 @@
+
 'use client';
 
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useContext, useEffect, useState, useMemo } from 'react';
 import { onAuthStateChanged, User, signOut, signInWithEmailAndPassword } from 'firebase/auth';
 import { auth, isAdmin as checkIsAdmin, isConfigValid } from '@/lib/firebase';
+import { usePathname } from 'next/navigation';
 
 interface AuthContextType {
   user: User | null;
@@ -25,45 +27,47 @@ const AuthContext = createContext<AuthContextType>({
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
-  const [isAdmin, setIsAdmin] = useState(false);
-  const [isFirebaseConfigured, setFirebaseConfigured] = useState(false);
 
   useEffect(() => {
-    if (isConfigValid) {
-        setFirebaseConfigured(true);
-        const unsubscribe = onAuthStateChanged(auth!, (user) => {
-            setUser(user);
-            setIsAdmin(checkIsAdmin(user?.email));
-            setLoading(false);
-        });
-        return () => unsubscribe();
-    } else {
-        setFirebaseConfigured(false);
-        setLoading(false);
+    if (!isConfigValid) {
+      setLoading(false);
+      return;
     }
+    
+    const unsubscribe = onAuthStateChanged(auth!, (user) => {
+      setUser(user);
+      setLoading(false);
+    });
+
+    return () => unsubscribe();
   }, []);
 
+  const value = useMemo(() => {
+    const isAdmin = checkIsAdmin(user?.email);
 
-  const signInUser = (email: string, pass: string) => {
-    if (!auth) return Promise.reject(new Error("Firebase not configured."));
-    return signInWithEmailAndPassword(auth, email, pass);
-  };
-  
-  const signOutUser = () => {
-    if (!isConfigValid || !auth) {
+    const signInUser = (email: string, pass: string) => {
+      if (!isConfigValid || !auth) {
+        return Promise.reject(new Error("Firebase n'est pas configuré."));
+      }
+      return signInWithEmailAndPassword(auth, email, pass);
+    };
+
+    const signOutUser = () => {
+      if (!isConfigValid || !auth) {
         return Promise.resolve();
-    }
-    return signOut(auth);
-  };
+      }
+      return signOut(auth);
+    };
 
-  const value = {
-    user,
-    loading,
-    isAdmin,
-    isFirebaseConfigured,
-    signInUser,
-    signOutUser,
-  };
+    return {
+      user,
+      loading,
+      isAdmin,
+      isFirebaseConfigured: isConfigValid,
+      signInUser,
+      signOutUser,
+    };
+  }, [user, loading]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };

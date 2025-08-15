@@ -1,10 +1,10 @@
 
-import { initializeApp, getApps, getApp } from "firebase/app";
+import { initializeApp, getApps, getApp, type FirebaseOptions } from "firebase/app";
 import { getAuth } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
 
 // Configuration Firebase de l'application
-const firebaseConfig = {
+const firebaseConfig: FirebaseOptions = {
   apiKey: "AIzaSyBJxzRAwN_Y2YHCYzkkzrARGZUVGtJT8Zs",
   authDomain: "cuisinezen.firebaseapp.com",
   projectId: "cuisinezen",
@@ -13,11 +13,11 @@ const firebaseConfig = {
   appId: "1:696328893008:web:d1635f46b7095ba07d5755"
 };
 
-// Vérifie si la configuration est valide avant d'initialiser
-const isConfigValid = firebaseConfig.apiKey && firebaseConfig.apiKey !== "YOUR_API_KEY";
+// Vérifie si la configuration est valide (contient une clé API)
+const isConfigValid = firebaseConfig.apiKey && !firebaseConfig.apiKey.startsWith('AIzaSy');
 
 // Initialise Firebase uniquement si la configuration est valide
-const app = isConfigValid && !getApps().length ? initializeApp(firebaseConfig) : (getApps().length ? getApp() : null);
+const app = isConfigValid && !getApps().length ? initializeApp(firebaseConfig) : (isConfigValid && getApps().length ? getApp() : null);
 
 const auth = app ? getAuth(app) : null;
 const db = app ? getFirestore(app) : null;
@@ -34,6 +34,5 @@ const isAdmin = (email: string | null | undefined): boolean => {
     if (!email) return false;
     return ADMIN_EMAILS.includes(email);
 }
-
 
 export { app, auth, db, isAdmin, isConfigValid };
