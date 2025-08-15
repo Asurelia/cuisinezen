@@ -14,7 +14,7 @@ export default function AppLayout({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
-  const { signOutUser } = useAuth();
+  const { signOutUser, loading } = useAuth();
   const router = useRouter();
 
   const isActive = (path: string) => pathname === path;
@@ -23,6 +23,14 @@ export default function AppLayout({
     await signOutUser();
     router.push('/login');
   };
+
+  if (loading) {
+    return (
+       <div className="flex items-center justify-center min-h-screen bg-background">
+         <p>Chargement de l'application...</p>
+       </div>
+    )
+  }
 
   return (
     <SidebarProvider>

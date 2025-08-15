@@ -38,12 +38,12 @@ export default function LoginPage() {
     setLoading(true);
     try {
       await signInUser(email, password);
-      // The auth provider and middleware will handle redirection
+      router.push('/inventory');
     } catch (error: any) {
        toast({
         variant: 'destructive',
         title: 'Erreur de connexion',
-        description: error.message || 'Email ou mot de passe incorrect.',
+        description: 'Email ou mot de passe incorrect. Vérifiez vos identifiants ou contactez l\'administrateur.',
       })
     } finally {
         setLoading(false);
@@ -74,11 +74,11 @@ export default function LoginPage() {
           <CardContent className="grid gap-4">
             <div className="grid gap-2">
               <Label htmlFor="email">Email</Label>
-              <Input id="email" type="email" placeholder="m@exemple.com" required value={email} onChange={e => setEmail(e.target.value)} disabled={isClient && !isFirebaseConfigured}/>
+              <Input id="email" type="email" placeholder="m@exemple.com" required value={email} onChange={e => setEmail(e.target.value)} disabled={loading || (isClient && !isFirebaseConfigured)}/>
             </div>
             <div className="grid gap-2">
               <Label htmlFor="password">Mot de passe</Label>
-              <Input id="password" type="password" required value={password} onChange={e => setPassword(e.target.value)} disabled={isClient && !isFirebaseConfigured}/>
+              <Input id="password" type="password" required value={password} onChange={e => setPassword(e.target.value)} disabled={loading || (isClient && !isFirebaseConfigured)}/>
             </div>
           </CardContent>
           <CardFooter className="flex flex-col gap-4">

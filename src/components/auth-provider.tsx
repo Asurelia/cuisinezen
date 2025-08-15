@@ -1,7 +1,7 @@
 'use client';
 
 import React, { createContext, useContext, useEffect, useState, useMemo } from 'react';
-import { onAuthStateChanged, User, signOut, signInWithEmailAndPassword } from 'firebase/auth';
+import { onAuthStateChanged, User, signOut, signInWithEmailAndPassword, IdTokenResult } from 'firebase/auth';
 import { auth, isAdmin as checkIsAdmin, isConfigValid } from '@/lib/firebase';
 import { usePathname, useRouter } from 'next/navigation';
 
@@ -10,7 +10,7 @@ interface AuthContextType {
   loading: boolean;
   isAdmin: boolean;
   isFirebaseConfigured: boolean;
-  signInUser: (email: string, pass: string) => Promise<any>;
+  signInUser: (email: string, pass: string) => Promise<User>;
   signOutUser: () => Promise<void>;
 }
 
@@ -19,23 +19,15 @@ const AuthContext = createContext<AuthContextType>({
   loading: true,
   isAdmin: false,
   isFirebaseConfigured: false,
-  signInUser: async () => {},
-  signOutUser: async () => {},
+  signInUser: async () => { throw new Error('AuthProvider not initialized'); },
+  signOutUser: async () => { throw new Error('AuthProvider not initialized'); },
 });
-
-const APP_ROUTES = ['/inventory', '/menu', '/recipes', '/shopping-list', '/account'];
-const AUTH_ROUTES = ['/login', '/signup'];
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
-  const [isClient, setIsClient] = useState(false);
-  const router = useRouter();
-  const pathname = usePathname();
 
   useEffect(() => {
-    setIsClient(true);
-
     if (!isConfigValid) {
       setLoading(false);
       return;
@@ -52,18 +44,33 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const value = useMemo(() => {
     const isAdmin = checkIsAdmin(user?.email);
 
-    const signInUser = (email: string, pass: string) => {
+    const signInUser = async (email: string, pass: string): Promise<User> => {
       if (!isConfigValid || !auth) {
-        return Promise.reject(new Error("Firebase n'est pas configuré."));
+        throw new Error("Firebase n'est pas configuré.");
       }
-      return signInWithEmailAndPassword(auth, email, pass);
+      const userCredential = await signInWithEmailAndPassword(auth, email, pass);
+      const idToken = await userCredential.user.getIdToken();
+
+      // Set the session cookie
+      await fetch('/api/auth/session', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ idToken }),
+      });
+      return userCredential.user;
     };
 
-    const signOutUser = () => {
+    const signOutUser = async () => {
       if (!isConfigValid || !auth) {
         return Promise.resolve();
       }
-      return signOut(auth);
+      await signOut(auth);
+       // Remove the session cookie
+       await fetch('/api/auth/session', {
+          method: 'DELETE',
+      });
     };
 
     return {
@@ -75,49 +82,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       signOutUser,
     };
   }, [user, loading]);
-
-  useEffect(() => {
-    if (!isClient || loading) return;
-
-    const isAppRoute = APP_ROUTES.some(route => pathname.startsWith(route));
-    const isAuthRoute = AUTH_ROUTES.some(route => pathname.startsWith(route));
-
-    if (!isConfigValid && isAppRoute) {
-      router.replace('/login');
-      return;
-    }
-
-    if (isConfigValid) {
-      if (!user && isAppRoute) {
-        router.replace('/login');
-        return;
-      }
-      if (user && isAuthRoute) {
-        router.replace('/inventory');
-        return;
-      }
-    }
-  }, [user, loading, isClient, isConfigValid, pathname, router]);
-
-
-  if (loading) {
-     return (
-        <div className="flex items-center justify-center min-h-screen bg-background">
-          <p>Chargement de l'application...</p>
-        </div>
-     )
-  }
-
-  // Prevent flash of content for protected routes
-  const isAppRoute = APP_ROUTES.some(route => pathname.startsWith(route));
-  if (!user && isAppRoute) {
-      return (
-        <div className="flex items-center justify-center min-h-screen bg-background">
-          <p>Redirection vers la page de connexion...</p>
-        </div>
-     )
-  }
-
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
