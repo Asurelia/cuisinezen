@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect, useCallback, useTransition, useRef } from 'react';
@@ -154,6 +153,7 @@ export function AddProductDialog({ isOpen, onOpenChange, onAddProduct }: AddProd
                         ref={fileInputRef}
                         onChange={handleImageChange}
                         accept="image/*"
+                        capture="environment"
                         className="hidden"
                     />
                     <button
