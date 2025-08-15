@@ -2,9 +2,11 @@
 'use client';
 
 import { SidebarProvider, Sidebar, SidebarInset, SidebarTrigger, SidebarMenu, SidebarMenuItem, SidebarMenuButton } from '@/components/ui/sidebar';
-import { Home, UtensilsCrossed, BookHeart, ShoppingCart, LogOut } from 'lucide-react';
+import { Home, UtensilsCrossed, BookHeart, ShoppingCart, LogOut, User } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { useAuth } from '@/components/auth-provider';
+import { useRouter } from 'next/navigation';
 
 export default function AppLayout({
   children,
@@ -12,13 +14,24 @@ export default function AppLayout({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
+  const { user, loading, signOutUser } = useAuth();
+  const router = useRouter();
 
   const isActive = (path: string) => pathname === path;
 
-  const handleLogout = () => {
-    // La logique de déconnexion sera ajoutée ici
-    console.log("Déconnexion...");
+  const handleLogout = async () => {
+    await signOutUser();
+    router.push('/login');
   };
+
+  if (loading) {
+    return (
+        <div className="flex items-center justify-center min-h-screen">
+            {/* Vous pouvez mettre un spinner ou un skeleton screen ici */}
+            <p>Chargement...</p>
+        </div>
+    )
+  }
 
   return (
     <SidebarProvider>
@@ -79,6 +92,14 @@ export default function AppLayout({
           </SidebarMenuItem>
         </SidebarMenu>
          <SidebarMenu>
+           <SidebarMenuItem>
+            <SidebarMenuButton asChild tooltip="Mon Compte" isActive={isActive('/account')}>
+              <Link href="/account">
+                <User />
+                <span>Mon Compte</span>
+              </Link>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
           <SidebarMenuItem>
             <SidebarMenuButton onClick={handleLogout} tooltip="Déconnexion">
               <LogOut />
@@ -93,7 +114,7 @@ export default function AppLayout({
             <div className="flex-1" />
         </header>
         <main className="flex-1 p-4 md:p-6">
-          {children}
+           {children}
         </main>
       </SidebarInset>
     </SidebarProvider>
