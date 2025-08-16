@@ -1,0 +1,263 @@
+rules_version = '2';
+
+// Règles Firestore pour CuisineZen - Sécurité renforcée
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // ========================================
+    // FONCTIONS UTILITAIRES DE SÉCURITÉ
+    // ========================================
+    
+    // Vérification de l'authentification
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    // Vérification du propriétaire
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+    
+    // Vérification admin
+    function isAdmin() {
+      return isAuthenticated() && 
+             request.auth.token.email in ['admin@cuisinezen.com'] &&
+             request.auth.token.admin == true;
+    }
+    
+    // Validation des données utilisateur
+    function isValidUserData(data) {
+      return data.keys().hasAll(['email', 'displayName', 'createdAt']) &&
+             data.email is string &&
+             data.displayName is string &&
+             data.email.matches('^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$') &&
+             data.displayName.size() >= 2 &&
+             data.displayName.size() <= 50;
+    }
+    
+    // Validation des produits
+    function isValidProduct(data) {
+      return data.keys().hasAll(['name', 'category', 'createdAt', 'userId']) &&
+             data.name is string &&
+             data.category is string &&
+             data.name.size() >= 1 &&
+             data.name.size() <= 100 &&
+             data.category.size() >= 1 &&
+             data.category.size() <= 50;
+    }
+    
+    // Validation des recettes
+    function isValidRecipe(data) {
+      return data.keys().hasAll(['title', 'description', 'ingredients', 'instructions', 'createdAt', 'userId']) &&
+             data.title is string &&
+             data.description is string &&
+             data.ingredients is list &&
+             data.instructions is list &&
+             data.title.size() >= 1 &&
+             data.title.size() <= 200 &&
+             data.description.size() <= 1000 &&
+             data.ingredients.size() >= 1 &&
+             data.ingredients.size() <= 50 &&
+             data.instructions.size() >= 1 &&
+             data.instructions.size() <= 20;
+    }
+    
+    // Rate limiting basique
+    function withinRateLimit() {
+      return request.time > resource.data.get('lastUpdated', timestamp.date(1970, 1, 1)) + duration.value(1, 's');
+    }
+    
+    // ========================================
+    // RÈGLES POUR LES UTILISATEURS
+    // ========================================
+    
+    match /users/{userId} {
+      // Lecture : Utilisateur peut voir son profil, admin peut tout voir
+      allow read: if isOwner(userId) || isAdmin();
+      
+      // Création : Seul l'utilisateur peut créer son propre profil
+      allow create: if isOwner(userId) && 
+                       isValidUserData(request.resource.data) &&
+                       request.resource.data.createdAt == request.time;
+      
+      // Mise à jour : Seul le propriétaire ou admin
+      allow update: if (isOwner(userId) || isAdmin()) &&
+                       isValidUserData(request.resource.data) &&
+                       request.resource.data.userId == userId &&
+                       withinRateLimit();
+      
+      // Suppression : Seul l'admin
+      allow delete: if isAdmin();
+      
+      // Sous-collection des préférences utilisateur
+      match /preferences/{document=**} {
+        allow read, write: if isOwner(userId);
+      }
+      
+      // Sous-collection des sessions (pour audit trail)
+      match /sessions/{sessionId} {
+        allow read: if isOwner(userId) || isAdmin();
+        allow create: if isOwner(userId);
+        allow update: if false; // Les sessions ne peuvent pas être modifiées
+        allow delete: if isOwner(userId) || isAdmin();
+      }
+    }
+    
+    // ========================================
+    // RÈGLES POUR LES PRODUITS
+    // ========================================
+    
+    match /products/{productId} {
+      // Lecture : Tous les utilisateurs authentifiés
+      allow read: if isAuthenticated();
+      
+      // Création : Utilisateur authentifié avec validation
+      allow create: if isAuthenticated() && 
+                       isValidProduct(request.resource.data) &&
+                       request.resource.data.userId == request.auth.uid &&
+                       request.resource.data.createdAt == request.time;
+      
+      // Mise à jour : Seul le propriétaire ou admin
+      allow update: if (isOwner(resource.data.userId) || isAdmin()) &&
+                       isValidProduct(request.resource.data) &&
+                       request.resource.data.userId == resource.data.userId &&
+                       withinRateLimit();
+      
+      // Suppression : Seul le propriétaire ou admin
+      allow delete: if isOwner(resource.data.userId) || isAdmin();
+    }
+    
+    // ========================================
+    // RÈGLES POUR LES RECETTES
+    // ========================================
+    
+    match /recipes/{recipeId} {
+      // Lecture : Tous les utilisateurs authentifiés
+      allow read: if isAuthenticated();
+      
+      // Création : Utilisateur authentifié avec validation
+      allow create: if isAuthenticated() && 
+                       isValidRecipe(request.resource.data) &&
+                       request.resource.data.userId == request.auth.uid &&
+                       request.resource.data.createdAt == request.time;
+      
+      // Mise à jour : Seul le propriétaire ou admin
+      allow update: if (isOwner(resource.data.userId) || isAdmin()) &&
+                       isValidRecipe(request.resource.data) &&
+                       request.resource.data.userId == resource.data.userId &&
+                       withinRateLimit();
+      
+      // Suppression : Seul le propriétaire ou admin
+      allow delete: if isOwner(resource.data.userId) || isAdmin();
+      
+      // Sous-collection des commentaires
+      match /comments/{commentId} {
+        allow read: if isAuthenticated();
+        allow create: if isAuthenticated() && 
+                         request.resource.data.userId == request.auth.uid &&
+                         request.resource.data.content.size() <= 500;
+        allow update: if isOwner(resource.data.userId) || isAdmin();
+        allow delete: if isOwner(resource.data.userId) || isAdmin();
+      }
+    }
+    
+    // ========================================
+    // RÈGLES POUR LES LISTES DE COURSES
+    // ========================================
+    
+    match /shopping-lists/{listId} {
+      // Lecture : Seul le propriétaire
+      allow read: if isOwner(resource.data.userId) || isAdmin();
+      
+      // Création : Utilisateur authentifié
+      allow create: if isAuthenticated() && 
+                       request.resource.data.userId == request.auth.uid &&
+                       request.resource.data.createdAt == request.time;
+      
+      // Mise à jour : Seul le propriétaire
+      allow update: if isOwner(resource.data.userId) && withinRateLimit();
+      
+      // Suppression : Seul le propriétaire ou admin
+      allow delete: if isOwner(resource.data.userId) || isAdmin();
+    }
+    
+    // ========================================
+    // RÈGLES POUR L'INVENTAIRE
+    // ========================================
+    
+    match /inventory/{itemId} {
+      // Lecture : Seul le propriétaire
+      allow read: if isOwner(resource.data.userId) || isAdmin();
+      
+      // Création : Utilisateur authentifié
+      allow create: if isAuthenticated() && 
+                       request.resource.data.userId == request.auth.uid &&
+                       request.resource.data.createdAt == request.time;
+      
+      // Mise à jour : Seul le propriétaire
+      allow update: if isOwner(resource.data.userId) && withinRateLimit();
+      
+      // Suppression : Seul le propriétaire ou admin
+      allow delete: if isOwner(resource.data.userId) || isAdmin();
+    }
+    
+    // ========================================
+    // RÈGLES POUR LES ANALYTICS (LECTURE SEULE)
+    // ========================================
+    
+    match /analytics/{document=**} {
+      // Lecture : Seuls les admins
+      allow read: if isAdmin();
+      
+      // Écriture : Interdit (géré par les Cloud Functions)
+      allow write: if false;
+    }
+    
+    // ========================================
+    // RÈGLES POUR LES LOGS DE SÉCURITÉ
+    // ========================================
+    
+    match /security-logs/{logId} {
+      // Lecture : Seuls les admins
+      allow read: if isAdmin();
+      
+      // Écriture : Interdit (géré par les Cloud Functions)
+      allow write: if false;
+    }
+    
+    // ========================================
+    // RÈGLES POUR LES MÉTADONNÉES SYSTÈME
+    // ========================================
+    
+    match /system/{document=**} {
+      // Lecture : Seuls les admins
+      allow read: if isAdmin();
+      
+      // Écriture : Seuls les admins
+      allow write: if isAdmin();
+    }
+    
+    // ========================================
+    // BLOCAGE PAR DÉFAUT
+    // ========================================
+    
+    // Interdire l'accès à tout le reste
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
+
+// Instructions de déploiement :
+// 1. firebase deploy --only firestore:rules
+// 2. Tester avec l'émulateur : firebase emulators:start
+// 3. Valider avec les tests de sécurité
+//
+// Notes de sécurité :
+// - Authentification requise pour toutes les opérations
+// - Validation stricte des données
+// - Principe de moindre privilège
+// - Rate limiting basique
+// - Audit trail pour les sessions
+// - Séparation des données sensibles
+// - Blocage par défaut de tout accès non autorisé

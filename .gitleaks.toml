@@ -1,0 +1,108 @@
+# Gitleaks configuration for CuisineZen
+title = "CuisineZen Security Secrets Detection"
+
+[extend]
+useDefault = true
+
+[[rules]]
+description = "Firebase API Key"
+id = "firebase-api-key"
+regex = '''AIza[0-9A-Za-z-_]{35}'''
+keywords = ["AIza"]
+
+[[rules]]
+description = "Firebase Database URL"
+id = "firebase-database-url"
+regex = '''https://[a-zA-Z0-9-]+\.firebaseio\.com'''
+keywords = ["firebaseio.com"]
+
+[[rules]]
+description = "Firebase Project ID"
+id = "firebase-project-id"
+regex = '''[a-zA-Z0-9-]+-[a-fA-F0-9]{5}'''
+keywords = ["firebase", "project"]
+
+[[rules]]
+description = "Google Cloud Service Account"
+id = "gcp-service-account"
+regex = '''[a-zA-Z0-9\-\.]+@[a-zA-Z0-9\-]+\.iam\.gserviceaccount\.com'''
+keywords = ["gserviceaccount.com"]
+
+[[rules]]
+description = "Generic API Key"
+id = "generic-api-key"
+regex = '''(?i)(api[_\-]?key|apikey)['\"\s]*[:=]['\"\s]*[a-zA-Z0-9]{20,}'''
+keywords = ["api_key", "apikey"]
+
+[[rules]]
+description = "Generic Secret"
+id = "generic-secret"
+regex = '''(?i)(secret|password|pwd|pass)['\"\s]*[:=]['\"\s]*[a-zA-Z0-9]{8,}'''
+keywords = ["secret", "password"]
+
+[[rules]]
+description = "JWT Token"
+id = "jwt-token"
+regex = '''ey[A-Za-z0-9_-]*\.[A-Za-z0-9._-]*\.[A-Za-z0-9._-]*'''
+keywords = ["jwt", "token"]
+
+[[rules]]
+description = "Private Key"
+id = "private-key"
+regex = '''-----BEGIN (RSA |EC |DSA |OPENSSH |PGP )?PRIVATE KEY-----'''
+keywords = ["PRIVATE KEY"]
+
+[[rules]]
+description = "Environment Variable"
+id = "env-var"
+regex = '''(?i)(REACT_APP_|NEXT_PUBLIC_|VITE_)[A-Z_]+['\"\s]*[:=]['\"\s]*[a-zA-Z0-9]{10,}'''
+keywords = ["REACT_APP_", "NEXT_PUBLIC_", "VITE_"]
+
+# Allowlist for known safe patterns
+[[allowlist]]
+description = "Example or placeholder values"
+regexes = [
+  '''your-api-key-here''',
+  '''your-project-id''',
+  '''example\.com''',
+  '''localhost''',
+  '''127\.0\.0\.1''',
+  '''0\.0\.0\.0''',
+  '''test-key''',
+  '''mock-secret''',
+  '''placeholder''',
+]
+
+[[allowlist]]
+description = "Documentation files"
+paths = [
+  '''.*\.md$''',
+  '''.*\.rst$''',
+  '''.*\.txt$''',
+  '''docs/.*''',
+  '''README.*''',
+  '''CHANGELOG.*''',
+  '''LICENSE.*''',
+]
+
+[[allowlist]]
+description = "Test files"
+paths = [
+  '''.*test.*''',
+  '''.*spec.*''',
+  '''__tests__/.*''',
+  '''tests/.*''',
+  '''.*/fixtures/.*''',
+  '''.*/mocks/.*''',
+]
+
+[[allowlist]]
+description = "Build and dependency files"
+paths = [
+  '''package-lock\.json''',
+  '''yarn\.lock''',
+  '''node_modules/.*''',
+  '''\.next/.*''',
+  '''dist/.*''',
+  '''build/.*''',
+]

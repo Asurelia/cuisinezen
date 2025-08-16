@@ -5,7 +5,7 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
-import { OptimizedImage } from '@/components/ui/optimized-image';
+import SimpleImage from '@/components/ui/simple-image';
 import { ChefHat, Clock, BarChart3 } from 'lucide-react';
 import type { Recipe, Product } from '@/lib/types';
 import { getBlurPlaceholder } from '@/lib/image-utils';
@@ -27,7 +27,7 @@ export function RecipeCard({ recipe, inventory }: RecipeCardProps) {
   return (
     <Card className="flex h-full flex-col overflow-hidden transition-shadow duration-300 hover:shadow-lg animate-fade-in">
       <CardHeader className="relative p-0">
-        <OptimizedImage
+        <SimpleImage
           src={recipe.imageUrl || `https://placehold.co/400x300.png?text=${encodeURIComponent(recipe.name)}`}
           alt={recipe.name}
           width={400}

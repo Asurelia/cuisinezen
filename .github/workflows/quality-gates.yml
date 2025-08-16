@@ -1,0 +1,449 @@
+name: 🔒 Quality Gates Enforcement
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+  workflow_dispatch:
+
+env:
+  NODE_VERSION: '18'
+  CACHE_VERSION: 'v1'
+
+jobs:
+  # Job 1: Code Quality Gates
+  code-quality:
+    name: 📋 Code Quality Gates
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    
+    steps:
+      - name: 🔍 Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      
+      - name: 📦 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+      
+      - name: 📥 Install dependencies
+        run: npm ci --prefer-offline --no-audit
+      
+      - name: 🔍 TypeScript type checking
+        run: npm run typecheck
+      
+      - name: 🔍 ESLint strict mode
+        run: npm run lint:strict
+      
+      - name: 🧪 Unit tests with coverage
+        run: npm run test:coverage
+      
+      - name: 📊 Upload coverage to Codecov
+        uses: codecov/codecov-action@v4
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          file: ./coverage/lcov.info
+          flags: unittests
+          name: codecov-umbrella
+          fail_ci_if_error: true
+      
+      - name: 📈 Coverage threshold check
+        run: |
+          node -e "
+            const coverage = require('./coverage/coverage-summary.json');
+            const thresholds = { lines: 80, branches: 70, functions: 80, statements: 80 };
+            let failed = false;
+            
+            Object.entries(thresholds).forEach(([type, threshold]) => {
+              const actual = coverage.total[type].pct;
+              if (actual < threshold) {
+                console.error(\`❌ ${type} coverage ${actual}% is below threshold ${threshold}%\`);
+                failed = true;
+              } else {
+                console.log(\`✅ ${type} coverage ${actual}% meets threshold ${threshold}%\`);
+              }
+            });
+            
+            if (failed) process.exit(1);
+          "
+
+  # Job 2: Security Gates
+  security:
+    name: 🔒 Security Gates
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    
+    steps:
+      - name: 🔍 Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      
+      - name: 📦 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+      
+      - name: 📥 Install dependencies
+        run: npm ci --prefer-offline --no-audit
+      
+      - name: 🔍 Semgrep security scan
+        uses: returntocorp/semgrep-action@v1
+        with:
+          config: .semgrep.yml
+          generateSarif: "1"
+        env:
+          SEMGREP_APP_TOKEN: ${{ secrets.SEMGREP_APP_TOKEN }}
+      
+      - name: 🔐 Gitleaks secret detection
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITLEAKS_LICENSE: ${{ secrets.GITLEAKS_LICENSE }}
+      
+      - name: 🔍 NPM audit
+        run: |
+          npm audit --audit-level=moderate --production
+          # Store audit results
+          npm audit --json --audit-level=moderate > npm-audit-results.json || true
+      
+      - name: 📊 Security summary
+        run: |
+          echo "## 🔒 Security Scan Results" >> $GITHUB_STEP_SUMMARY
+          echo "### NPM Audit" >> $GITHUB_STEP_SUMMARY
+          if [ -f npm-audit-results.json ]; then
+            node -e "
+              const audit = require('./npm-audit-results.json');
+              const meta = audit.metadata || {};
+              const vuln = meta.vulnerabilities || {};
+              console.log(\`| Severity | Count |\`);
+              console.log(\`|----------|-------|\`);
+              console.log(\`| Critical | ${vuln.critical || 0} |\`);
+              console.log(\`| High     | ${vuln.high || 0} |\`);
+              console.log(\`| Moderate | ${vuln.moderate || 0} |\`);
+              console.log(\`| Low      | ${vuln.low || 0} |\`);
+            " >> $GITHUB_STEP_SUMMARY
+          fi
+      
+      - name: 📤 Upload security artifacts
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: security-reports
+          path: |
+            npm-audit-results.json
+            .semgrep_logs/
+          retention-days: 30
+
+  # Job 3: Accessibility Gates
+  accessibility:
+    name: ♿ Accessibility Gates
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    
+    steps:
+      - name: 🔍 Checkout code
+        uses: actions/checkout@v4
+      
+      - name: 📦 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+      
+      - name: 📥 Install dependencies
+        run: npm ci --prefer-offline --no-audit
+      
+      - name: 🏗️ Build application
+        run: npm run build
+      
+      - name: 📦 Install Playwright browsers
+        run: npx playwright install --with-deps chromium firefox webkit
+      
+      - name: ♿ Run accessibility tests
+        run: npm run test:a11y
+      
+      - name: 📊 Accessibility summary
+        if: always()
+        run: |
+          echo "## ♿ Accessibility Test Results" >> $GITHUB_STEP_SUMMARY
+          if [ -f test-results/a11y-results.json ]; then
+            node -e "
+              const results = require('./test-results/a11y-results.json');
+              const suites = results.suites || [];
+              let totalTests = 0;
+              let passedTests = 0;
+              
+              suites.forEach(suite => {
+                suite.specs?.forEach(spec => {
+                  spec.tests?.forEach(test => {
+                    totalTests++;
+                    if (test.outcome === 'expected') passedTests++;
+                  });
+                });
+              });
+              
+              console.log(\`✅ Passed: ${passedTests}/${totalTests} tests\`);
+              console.log(\`📊 Success rate: ${Math.round((passedTests/totalTests)*100)}%\`);
+            " >> $GITHUB_STEP_SUMMARY
+          fi
+      
+      - name: 📤 Upload accessibility reports
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: accessibility-reports
+          path: |
+            test-results/
+          retention-days: 30
+
+  # Job 4: Performance Gates
+  performance:
+    name: 🚀 Performance Gates
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    
+    steps:
+      - name: 🔍 Checkout code
+        uses: actions/checkout@v4
+      
+      - name: 📦 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+      
+      - name: 📥 Install dependencies
+        run: npm ci --prefer-offline --no-audit
+      
+      - name: 🏗️ Build application
+        run: npm run build
+      
+      - name: 📊 Bundle size analysis
+        run: |
+          npm run bundle:analyze
+          # Check bundle size
+          node -e "
+            const fs = require('fs');
+            const path = require('path');
+            
+            // Calculate .next/static folder size
+            let totalSize = 0;
+            const staticDir = '.next/static';
+            
+            if (fs.existsSync(staticDir)) {
+              const calculateSize = (dir) => {
+                const items = fs.readdirSync(dir);
+                items.forEach(item => {
+                  const itemPath = path.join(dir, item);
+                  const stats = fs.statSync(itemPath);
+                  if (stats.isDirectory()) {
+                    calculateSize(itemPath);
+                  } else {
+                    totalSize += stats.size;
+                  }
+                });
+              };
+              calculateSize(staticDir);
+            }
+            
+            const maxSize = 300000; // 300KB
+            const sizeMB = (totalSize / 1024 / 1024).toFixed(2);
+            const maxSizeMB = (maxSize / 1024 / 1024).toFixed(2);
+            
+            console.log(\`Bundle size: ${sizeMB}MB (max: ${maxSizeMB}MB)\`);
+            
+            if (totalSize > maxSize) {
+              console.error(\`❌ Bundle size ${sizeMB}MB exceeds limit ${maxSizeMB}MB\`);
+              process.exit(1);
+            } else {
+              console.log(\`✅ Bundle size ${sizeMB}MB is within limit ${maxSizeMB}MB\`);
+            }
+          "
+      
+      - name: 🔍 Lighthouse CI
+        run: |
+          npm run lighthouse
+        env:
+          LHCI_GITHUB_APP_TOKEN: ${{ secrets.LHCI_GITHUB_APP_TOKEN }}
+      
+      - name: 📤 Upload performance reports
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: performance-reports
+          path: |
+            .lighthouseci/
+            bundle-analyzer-report.html
+          retention-days: 30
+
+  # Job 5: Mutation Testing (Optional, runs on main branch only)
+  mutation-testing:
+    name: 🧬 Mutation Testing
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    if: github.ref == 'refs/heads/main'
+    
+    steps:
+      - name: 🔍 Checkout code
+        uses: actions/checkout@v4
+      
+      - name: 📦 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+      
+      - name: 📥 Install dependencies
+        run: npm ci --prefer-offline --no-audit
+      
+      - name: 🧬 Run mutation testing
+        run: npm run test:mutation
+      
+      - name: 📊 Mutation score check
+        run: |
+          if [ -f reports/mutation/mutation-report.json ]; then
+            node -e "
+              const report = require('./reports/mutation/mutation-report.json');
+              const score = report.mutationScore || 0;
+              const threshold = 60;
+              
+              console.log(\`Mutation score: ${score}% (threshold: ${threshold}%)\`);
+              
+              if (score < threshold) {
+                console.error(\`❌ Mutation score ${score}% is below threshold ${threshold}%\`);
+                process.exit(1);
+              } else {
+                console.log(\`✅ Mutation score ${score}% meets threshold ${threshold}%\`);
+              }
+            "
+          fi
+      
+      - name: 📤 Upload mutation reports
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: mutation-reports
+          path: |
+            reports/mutation/
+          retention-days: 30
+
+  # Job 6: SBOM Generation
+  sbom-generation:
+    name: 📋 SBOM Generation
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    
+    steps:
+      - name: 🔍 Checkout code
+        uses: actions/checkout@v4
+      
+      - name: 📦 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+      
+      - name: 📥 Install dependencies
+        run: npm ci --prefer-offline --no-audit
+      
+      - name: 📋 Generate SBOM
+        run: npm run sbom:generate
+      
+      - name: 📤 Upload SBOM artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: sbom-reports
+          path: |
+            reports/sbom/
+          retention-days: 90
+
+  # Job 7: Overall Quality Gates Check
+  quality-gates-check:
+    name: 🎯 Quality Gates Summary
+    runs-on: ubuntu-latest
+    needs: [code-quality, security, accessibility, performance, sbom-generation]
+    if: always()
+    timeout-minutes: 10
+    
+    steps:
+      - name: 🔍 Checkout code
+        uses: actions/checkout@v4
+      
+      - name: 📦 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+      
+      - name: 📥 Install dependencies
+        run: npm ci --prefer-offline --no-audit
+      
+      - name: 📊 Run quality gates check
+        run: npm run gates:check
+      
+      - name: 📈 Generate final report
+        if: always()
+        run: |
+          echo "## 🎯 Quality Gates Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          # Check job statuses
+          CODE_QUALITY="${{ needs.code-quality.result }}"
+          SECURITY="${{ needs.security.result }}"
+          ACCESSIBILITY="${{ needs.accessibility.result }}"
+          PERFORMANCE="${{ needs.performance.result }}"
+          SBOM="${{ needs.sbom-generation.result }}"
+          
+          echo "| Gate | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|------|--------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Code Quality | $([[ \"$CODE_QUALITY\" == \"success\" ]] && echo \"✅ PASSED\" || echo \"❌ FAILED\") |" >> $GITHUB_STEP_SUMMARY
+          echo "| Security | $([[ \"$SECURITY\" == \"success\" ]] && echo \"✅ PASSED\" || echo \"❌ FAILED\") |" >> $GITHUB_STEP_SUMMARY
+          echo "| Accessibility | $([[ \"$ACCESSIBILITY\" == \"success\" ]] && echo \"✅ PASSED\" || echo \"❌ FAILED\") |" >> $GITHUB_STEP_SUMMARY
+          echo "| Performance | $([[ \"$PERFORMANCE\" == \"success\" ]] && echo \"✅ PASSED\" || echo \"❌ FAILED\") |" >> $GITHUB_STEP_SUMMARY
+          echo "| SBOM Generation | $([[ \"$SBOM\" == \"success\" ]] && echo \"✅ PASSED\" || echo \"❌ FAILED\") |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          # Overall status
+          if [[ "$CODE_QUALITY" == "success" && "$SECURITY" == "success" && "$ACCESSIBILITY" == "success" && "$PERFORMANCE" == "success" ]]; then
+            echo "🎉 **All Quality Gates PASSED! Ready for production deployment.**" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "💥 **Quality Gates FAILED! Please fix the issues before deploying to production.**" >> $GITHUB_STEP_SUMMARY
+            exit 1
+          fi
+      
+      - name: 📤 Upload final reports
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: quality-gates-summary
+          path: |
+            reports/quality-gates/
+          retention-days: 90
+
+  # Job 8: Deployment Gate (only on main branch with all gates passed)
+  deployment-gate:
+    name: 🚀 Deployment Gate
+    runs-on: ubuntu-latest
+    needs: [quality-gates-check]
+    if: github.ref == 'refs/heads/main' && needs.quality-gates-check.result == 'success'
+    
+    steps:
+      - name: 🎉 Deployment approved
+        run: |
+          echo "🎉 All quality gates passed!"
+          echo "✅ Code quality: PASSED"
+          echo "✅ Security: PASSED"
+          echo "✅ Accessibility: PASSED"
+          echo "✅ Performance: PASSED"
+          echo "🚀 Ready for production deployment!"
+      
+      - name: 🏷️ Create deployment tag
+        run: |
+          echo "Creating deployment tag for successful quality gates run..."
+          # This would trigger your actual deployment process

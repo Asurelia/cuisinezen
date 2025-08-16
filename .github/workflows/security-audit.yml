@@ -1,0 +1,281 @@
+name: 🛡️ Security Audit
+
+on:
+  schedule:
+    # Run security audit daily at 2 AM UTC
+    - cron: '0 2 * * *'
+  push:
+    branches: [ main ]
+    paths:
+      - 'package*.json'
+      - '.github/workflows/security-audit.yml'
+  workflow_dispatch:
+
+env:
+  NODE_VERSION: '18'
+
+jobs:
+  security-audit:
+    name: 🔒 Comprehensive Security Audit
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    
+    steps:
+      - name: 🔍 Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      
+      - name: 📦 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+      
+      - name: 📥 Install dependencies
+        run: npm ci --prefer-offline --no-audit
+      
+      - name: 🔍 NPM Audit (Critical & High)
+        run: |
+          echo "## 🔍 NPM Audit Results" >> security-audit-report.md
+          echo "" >> security-audit-report.md
+          
+          # Run audit and capture output
+          npm audit --audit-level=high --json > npm-audit-results.json || true
+          
+          # Parse and format results
+          node -e "
+            const fs = require('fs');
+            const audit = JSON.parse(fs.readFileSync('npm-audit-results.json', 'utf8'));
+            const meta = audit.metadata || {};
+            const vuln = meta.vulnerabilities || {};
+            
+            console.log('### Vulnerability Summary');
+            console.log('| Severity | Count |');
+            console.log('|----------|-------|');
+            console.log('| Critical | ' + (vuln.critical || 0) + ' |');
+            console.log('| High     | ' + (vuln.high || 0) + ' |');
+            console.log('| Moderate | ' + (vuln.moderate || 0) + ' |');
+            console.log('| Low      | ' + (vuln.low || 0) + ' |');
+            console.log('');
+            
+            if (audit.vulnerabilities && Object.keys(audit.vulnerabilities).length > 0) {
+              console.log('### Detailed Vulnerabilities');
+              Object.entries(audit.vulnerabilities).forEach(([pkg, details]) => {
+                console.log('#### ' + pkg);
+                console.log('- **Severity**: ' + details.severity);
+                console.log('- **Title**: ' + (details.title || 'Unknown'));
+                console.log('- **Range**: ' + (details.range || 'Unknown'));
+                console.log('- **Fix Available**: ' + (details.fixAvailable ? 'Yes' : 'No'));
+                if (details.url) {
+                  console.log('- **Details**: [' + details.url + '](' + details.url + ')');
+                }
+                console.log('');
+              });
+            }
+          " >> security-audit-report.md
+      
+      - name: 🔐 Gitleaks Secret Scan
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITLEAKS_LICENSE: ${{ secrets.GITLEAKS_LICENSE }}
+      
+      - name: 🛡️ Semgrep Security Analysis
+        uses: returntocorp/semgrep-action@v1
+        with:
+          config: >-
+            p/security-audit
+            p/secrets
+            p/nodejs
+            p/react
+            p/typescript
+            .semgrep.yml
+          generateSarif: "1"
+        env:
+          SEMGREP_APP_TOKEN: ${{ secrets.SEMGREP_APP_TOKEN }}
+      
+      - name: 📊 Generate Security Report
+        if: always()
+        run: |
+          echo "" >> security-audit-report.md
+          echo "## 🔐 Secret Detection Results" >> security-audit-report.md
+          echo "" >> security-audit-report.md
+          
+          if [ -f gitleaks-report.json ]; then
+            node -e "
+              const fs = require('fs');
+              const report = JSON.parse(fs.readFileSync('gitleaks-report.json', 'utf8'));
+              
+              if (report.length === 0) {
+                console.log('✅ No secrets detected');
+              } else {
+                console.log('❌ Secrets detected: ' + report.length);
+                report.forEach((finding, index) => {
+                  console.log('### Finding ' + (index + 1));
+                  console.log('- **Rule**: ' + finding.RuleID);
+                  console.log('- **File**: ' + finding.File);
+                  console.log('- **Line**: ' + finding.StartLine);
+                  console.log('- **Secret**: ' + finding.Secret.substring(0, 20) + '...');
+                  console.log('');
+                });
+              }
+            " >> security-audit-report.md
+          else
+            echo "✅ No secrets detected" >> security-audit-report.md
+          fi
+          
+          echo "" >> security-audit-report.md
+          echo "## 🛡️ Semgrep Security Findings" >> security-audit-report.md
+          echo "" >> security-audit-report.md
+          
+          if [ -f semgrep.sarif ]; then
+            node -e "
+              const fs = require('fs');
+              const sarif = JSON.parse(fs.readFileSync('semgrep.sarif', 'utf8'));
+              const results = sarif.runs[0]?.results || [];
+              
+              if (results.length === 0) {
+                console.log('✅ No security issues detected by Semgrep');
+              } else {
+                console.log('❌ Security issues detected: ' + results.length);
+                results.forEach((result, index) => {
+                  const rule = result.ruleId;
+                  const message = result.message.text;
+                  const file = result.locations[0]?.physicalLocation?.artifactLocation?.uri;
+                  const line = result.locations[0]?.physicalLocation?.region?.startLine;
+                  
+                  console.log('### Issue ' + (index + 1));
+                  console.log('- **Rule**: ' + rule);
+                  console.log('- **Message**: ' + message);
+                  console.log('- **File**: ' + file);
+                  console.log('- **Line**: ' + line);
+                  console.log('');
+                });
+              }
+            " >> security-audit-report.md
+          else
+            echo "✅ No security issues detected by Semgrep" >> security-audit-report.md
+          fi
+          
+          # Add timestamp
+          echo "" >> security-audit-report.md
+          echo "---" >> security-audit-report.md
+          echo "**Report generated**: $(date -u +"%Y-%m-%d %H:%M:%S UTC")" >> security-audit-report.md
+          echo "**Commit**: ${{ github.sha }}" >> security-audit-report.md
+      
+      - name: 📤 Upload Security Reports
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: security-audit-reports-${{ github.run_number }}
+          path: |
+            security-audit-report.md
+            npm-audit-results.json
+            gitleaks-report.json
+            semgrep.sarif
+          retention-days: 90
+      
+      - name: 📧 Security Summary
+        if: always()
+        run: |
+          echo "## 🛡️ Security Audit Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          cat security-audit-report.md >> $GITHUB_STEP_SUMMARY
+      
+      - name: ❌ Fail on Critical Issues
+        run: |
+          # Check for critical vulnerabilities
+          CRITICAL_VULNS=$(node -e "
+            const audit = require('./npm-audit-results.json');
+            const critical = audit.metadata?.vulnerabilities?.critical || 0;
+            console.log(critical);
+          ")
+          
+          # Check for secrets
+          SECRETS_COUNT=0
+          if [ -f gitleaks-report.json ]; then
+            SECRETS_COUNT=$(node -e "
+              const report = require('./gitleaks-report.json');
+              console.log(report.length);
+            ")
+          fi
+          
+          # Check for high-severity Semgrep issues
+          HIGH_SEVERITY_ISSUES=0
+          if [ -f semgrep.sarif ]; then
+            HIGH_SEVERITY_ISSUES=$(node -e "
+              const sarif = require('./semgrep.sarif');
+              const results = sarif.runs[0]?.results || [];
+              const highSeverity = results.filter(r => 
+                r.properties?.['security-severity'] === 'high' ||
+                r.level === 'error'
+              ).length;
+              console.log(highSeverity);
+            ")
+          fi
+          
+          echo "Critical vulnerabilities: $CRITICAL_VULNS"
+          echo "Secrets detected: $SECRETS_COUNT"
+          echo "High severity issues: $HIGH_SEVERITY_ISSUES"
+          
+          if [ "$CRITICAL_VULNS" -gt 0 ] || [ "$SECRETS_COUNT" -gt 0 ] || [ "$HIGH_SEVERITY_ISSUES" -gt 0 ]; then
+            echo "❌ Security audit failed! Critical issues detected."
+            exit 1
+          else
+            echo "✅ Security audit passed!"
+          fi
+
+  dependency-review:
+    name: 📋 Dependency Review
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    
+    steps:
+      - name: 🔍 Checkout code
+        uses: actions/checkout@v4
+      
+      - name: 📋 Dependency Review
+        uses: actions/dependency-review-action@v4
+        with:
+          fail-on-severity: moderate
+          allow-ghsas: |
+            GHSA-xxxx-xxxx-xxxx
+          deny-licenses: |
+            GPL-2.0
+            GPL-3.0
+            AGPL-1.0
+            AGPL-3.0
+          comment-summary-in-pr: true
+
+  codeql-analysis:
+    name: 🔍 CodeQL Analysis
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      actions: read
+      contents: read
+      security-events: write
+    
+    strategy:
+      fail-fast: false
+      matrix:
+        language: ['javascript']
+    
+    steps:
+      - name: 🔍 Checkout code
+        uses: actions/checkout@v4
+      
+      - name: 🔧 Initialize CodeQL
+        uses: github/codeql-action/init@v3
+        with:
+          languages: ${{ matrix.language }}
+          queries: +security-and-quality
+      
+      - name: 🏗️ Autobuild
+        uses: github/codeql-action/autobuild@v3
+      
+      - name: 🔍 Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v3
+        with:
+          category: "/language:${{matrix.language}}"

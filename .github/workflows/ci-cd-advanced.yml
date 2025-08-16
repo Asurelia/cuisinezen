@@ -1,0 +1,433 @@
+name: 🚀 Advanced CI/CD Pipeline - CuisineZen DevOps
+
+on:
+  push:
+    branches: [main, develop, staging]
+  pull_request:
+    branches: [main, develop]
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Target Environment'
+        required: true
+        default: 'staging'
+        type: choice
+        options:
+          - development
+          - staging
+          - production
+      deployment_type:
+        description: 'Deployment Type'
+        required: true
+        default: 'blue-green'
+        type: choice
+        options:
+          - blue-green
+          - rolling
+          - canary
+
+env:
+  NODE_VERSION: '18'
+  REGISTRY: ghcr.io
+  IMAGE_NAME: cuisinezen
+
+jobs:
+  # ============= Quality Gates Phase =============
+  quality-gates:
+    name: 🎯 DoD Quality Gates
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    outputs:
+      quality-score: ${{ steps.dod-check.outputs.score }}
+      deployment-approved: ${{ steps.dod-check.outputs.approved }}
+      environment: ${{ steps.environment.outputs.env }}
+    
+    steps:
+      - name: 📥 Checkout Code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: 🔍 Determine Environment
+        id: environment
+        run: |
+          if [[ "${{ github.ref }}" == "refs/heads/main" ]]; then
+            echo "env=production" >> $GITHUB_OUTPUT
+          elif [[ "${{ github.ref }}" == "refs/heads/staging" ]]; then
+            echo "env=staging" >> $GITHUB_OUTPUT
+          else
+            echo "env=development" >> $GITHUB_OUTPUT
+          fi
+
+      - name: 📦 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: 📦 Install Dependencies
+        run: |
+          npm ci
+          cd functions && npm ci
+
+      - name: 🔧 Setup Environment
+        run: |
+          echo "ENVIRONMENT=${{ steps.environment.outputs.env }}" >> $GITHUB_ENV
+          cp .env.${{ steps.environment.outputs.env }}.example .env.local
+          
+      - name: 🏗️ Build Application
+        run: npm run build
+
+      - name: 🎯 Run DoD Quality Gates
+        id: dod-check
+        run: |
+          npm run gates:all
+          SCORE=$(node -e "console.log(JSON.parse(require('fs').readFileSync('./dod-results.json')).overallScore)")
+          APPROVED=$(node -e "console.log(JSON.parse(require('fs').readFileSync('./dod-results.json')).approved)")
+          echo "score=$SCORE" >> $GITHUB_OUTPUT
+          echo "approved=$APPROVED" >> $GITHUB_OUTPUT
+
+      - name: 📊 Upload DoD Report
+        uses: actions/upload-artifact@v4
+        with:
+          name: dod-report-${{ github.sha }}
+          path: |
+            ./dod-results.json
+            ./coverage/lcov-report/
+            ./qa-automation/reports/
+
+      - name: 🚫 Block Deployment on Quality Failure
+        if: steps.dod-check.outputs.approved != 'true'
+        run: |
+          echo "❌ DoD Quality Gates FAILED - Deployment BLOCKED"
+          echo "Score: ${{ steps.dod-check.outputs.score }}/100"
+          exit 1
+
+  # ============= Security Scanning Phase =============
+  security-scan:
+    name: 🔒 Advanced Security Scanning
+    runs-on: ubuntu-latest
+    needs: quality-gates
+    
+    steps:
+      - name: 📥 Checkout Code
+        uses: actions/checkout@v4
+
+      - name: 🔍 SAST - Static Analysis
+        uses: github/super-linter@v4
+        env:
+          DEFAULT_BRANCH: main
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VALIDATE_TYPESCRIPT_ES: true
+          VALIDATE_JAVASCRIPT_ES: true
+
+      - name: 🛡️ OWASP Dependency Check
+        uses: dependency-check/Dependency-Check_Action@main
+        with:
+          project: 'CuisineZen'
+          path: '.'
+          format: 'ALL'
+
+      - name: 🔐 Secrets Detection
+        run: |
+          npm install -g gitleaks
+          gitleaks detect --source . --verbose --report-format json --report-path gitleaks-report.json
+
+      - name: 🎯 Firebase Security Rules Test
+        run: |
+          npm install -g firebase-tools
+          firebase emulators:exec --only firestore "npm run test:security:rules"
+
+      - name: 📋 Security Report
+        uses: actions/upload-artifact@v4
+        with:
+          name: security-report-${{ github.sha }}
+          path: |
+            ./gitleaks-report.json
+            ./reports/
+
+  # ============= Container Build Phase =============
+  container-build:
+    name: 🐳 Container Build & Registry
+    runs-on: ubuntu-latest
+    needs: [quality-gates, security-scan]
+    outputs:
+      image-digest: ${{ steps.build.outputs.digest }}
+      image-tag: ${{ steps.meta.outputs.tags }}
+    
+    steps:
+      - name: 📥 Checkout Code
+        uses: actions/checkout@v4
+
+      - name: 🔐 Login to Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: 🏷️ Extract Metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ github.repository }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=ref,event=branch
+            type=ref,event=pr
+            type=sha,prefix={{branch}}-
+            type=raw,value=latest,enable={{is_default_branch}}
+
+      - name: 🏗️ Build and Push Container
+        id: build
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: 🔍 Container Security Scan
+        uses: anchore/scan-action@v3
+        with:
+          image: ${{ steps.meta.outputs.tags }}
+          fail-build: true
+          severity-cutoff: high
+
+  # ============= Deployment Strategy Selection =============
+  deployment-strategy:
+    name: 🎯 Deployment Strategy
+    runs-on: ubuntu-latest
+    needs: [quality-gates, container-build]
+    outputs:
+      strategy: ${{ steps.strategy.outputs.type }}
+      environment: ${{ needs.quality-gates.outputs.environment }}
+    
+    steps:
+      - name: 🔄 Select Deployment Strategy
+        id: strategy
+        run: |
+          ENV="${{ needs.quality-gates.outputs.environment }}"
+          STRATEGY="${{ github.event.inputs.deployment_type || 'blue-green' }}"
+          
+          if [[ "$ENV" == "production" ]]; then
+            STRATEGY="blue-green"
+          elif [[ "$ENV" == "staging" ]]; then
+            STRATEGY="rolling"
+          else
+            STRATEGY="rolling"
+          fi
+          
+          echo "type=$STRATEGY" >> $GITHUB_OUTPUT
+          echo "🎯 Selected deployment strategy: $STRATEGY for $ENV"
+
+  # ============= Blue-Green Deployment =============
+  deploy-blue-green:
+    name: 🔵🟢 Blue-Green Deployment
+    runs-on: ubuntu-latest
+    needs: [deployment-strategy, container-build]
+    if: needs.deployment-strategy.outputs.strategy == 'blue-green'
+    environment:
+      name: ${{ needs.deployment-strategy.outputs.environment }}
+      url: ${{ steps.deploy.outputs.url }}
+    
+    steps:
+      - name: 📥 Checkout Code
+        uses: actions/checkout@v4
+
+      - name: 🔵 Deploy to Blue Environment
+        id: deploy-blue
+        run: |
+          echo "🔵 Deploying to Blue environment..."
+          # Firebase deploy to blue channel
+          npm install -g firebase-tools
+          firebase hosting:channel:deploy blue \
+            --project ${{ needs.deployment-strategy.outputs.environment }} \
+            --token ${{ secrets.FIREBASE_TOKEN }}
+
+      - name: 🧪 Blue Environment Health Check
+        run: |
+          echo "🧪 Running health checks on Blue environment..."
+          npx playwright test --config=qa-automation/configs/playwright.config.ts \
+            --grep "health-check" \
+            --env-url="${{ steps.deploy-blue.outputs.preview-url }}"
+
+      - name: 🧪 Blue Environment Load Test
+        run: |
+          echo "⚡ Running load tests on Blue environment..."
+          npm run test:load -- --target="${{ steps.deploy-blue.outputs.preview-url }}"
+
+      - name: 🔄 Traffic Switch to Blue
+        id: switch-traffic
+        run: |
+          echo "🔄 Switching traffic to Blue environment..."
+          firebase hosting:channel:deploy live \
+            --alias blue \
+            --project ${{ needs.deployment-strategy.outputs.environment }} \
+            --token ${{ secrets.FIREBASE_TOKEN }}
+
+      - name: 🟢 Green Environment Cleanup
+        run: |
+          echo "🟢 Cleaning up Green environment..."
+          firebase hosting:channel:delete green \
+            --project ${{ needs.deployment-strategy.outputs.environment }} \
+            --token ${{ secrets.FIREBASE_TOKEN }} \
+            --force
+
+      - name: 📊 Deployment Success Metrics
+        id: deploy
+        run: |
+          echo "url=https://${{ needs.deployment-strategy.outputs.environment }}-cuisinezen.web.app" >> $GITHUB_OUTPUT
+          echo "✅ Blue-Green deployment completed successfully"
+
+  # ============= Rolling Deployment =============
+  deploy-rolling:
+    name: 🔄 Rolling Deployment
+    runs-on: ubuntu-latest
+    needs: [deployment-strategy, container-build]
+    if: needs.deployment-strategy.outputs.strategy == 'rolling'
+    environment:
+      name: ${{ needs.deployment-strategy.outputs.environment }}
+    
+    steps:
+      - name: 📥 Checkout Code
+        uses: actions/checkout@v4
+
+      - name: 🔄 Rolling Update
+        run: |
+          echo "🔄 Performing rolling update..."
+          npm install -g firebase-tools
+          firebase deploy \
+            --project ${{ needs.deployment-strategy.outputs.environment }} \
+            --token ${{ secrets.FIREBASE_TOKEN }}
+
+  # ============= Post-Deployment Monitoring =============
+  post-deployment-monitoring:
+    name: 📊 Post-Deployment Monitoring
+    runs-on: ubuntu-latest
+    needs: [deploy-blue-green, deploy-rolling]
+    if: |
+      always() && 
+      (needs.deploy-blue-green.result == 'success' || needs.deploy-rolling.result == 'success')
+    
+    steps:
+      - name: 📥 Checkout Code
+        uses: actions/checkout@v4
+
+      - name: 🏃‍♂️ Smoke Tests
+        run: |
+          echo "🏃‍♂️ Running post-deployment smoke tests..."
+          npm run test:smoke:production
+
+      - name: ⚡ Performance Monitoring
+        run: |
+          echo "⚡ Monitoring post-deployment performance..."
+          npm run lighthouse:production
+          npm run monitor:core-web-vitals
+
+      - name: 🔔 Setup Monitoring Alerts
+        run: |
+          echo "🔔 Setting up monitoring alerts..."
+          node scripts/setup-monitoring-alerts.js
+
+      - name: 📈 Business Metrics Tracking
+        run: |
+          echo "📈 Tracking business metrics..."
+          node scripts/track-deployment-metrics.js
+
+  # ============= Rollback Strategy =============
+  rollback:
+    name: 🔙 Automatic Rollback
+    runs-on: ubuntu-latest
+    needs: [post-deployment-monitoring]
+    if: failure()
+    
+    steps:
+      - name: 📥 Checkout Code
+        uses: actions/checkout@v4
+
+      - name: 🔙 Execute Rollback
+        run: |
+          echo "🔙 Executing automatic rollback..."
+          firebase hosting:channel:deploy live \
+            --alias previous \
+            --project ${{ needs.deployment-strategy.outputs.environment }} \
+            --token ${{ secrets.FIREBASE_TOKEN }}
+
+      - name: 🚨 Rollback Notification
+        uses: 8398a7/action-slack@v3
+        with:
+          status: failure
+          channel: '#deployments'
+          webhook_url: ${{ secrets.SLACK_WEBHOOK }}
+          custom_payload: |
+            {
+              text: "🚨 AUTOMATIC ROLLBACK EXECUTED",
+              attachments: [{
+                color: "danger",
+                fields: [{
+                  title: "Environment",
+                  value: "${{ needs.deployment-strategy.outputs.environment }}",
+                  short: true
+                }, {
+                  title: "Commit",
+                  value: "${{ github.sha }}",
+                  short: true
+                }]
+              }]
+            }
+
+  # ============= Deployment Notification =============
+  notification:
+    name: 📢 Deployment Notification
+    runs-on: ubuntu-latest
+    needs: [post-deployment-monitoring, deploy-blue-green, deploy-rolling]
+    if: |
+      always() && 
+      (needs.deploy-blue-green.result == 'success' || needs.deploy-rolling.result == 'success')
+    
+    steps:
+      - name: 🎉 Success Notification
+        uses: 8398a7/action-slack@v3
+        with:
+          status: success
+          channel: '#deployments'
+          webhook_url: ${{ secrets.SLACK_WEBHOOK }}
+          custom_payload: |
+            {
+              text: "🚀 CuisineZen Deployment Successful!",
+              attachments: [{
+                color: "good",
+                fields: [{
+                  title: "Environment",
+                  value: "${{ needs.deployment-strategy.outputs.environment }}",
+                  short: true
+                }, {
+                  title: "Strategy",
+                  value: "${{ needs.deployment-strategy.outputs.strategy }}",
+                  short: true
+                }, {
+                  title: "Quality Score",
+                  value: "${{ needs.quality-gates.outputs.quality-score }}/100",
+                  short: true
+                }, {
+                  title: "Commit",
+                  value: "${{ github.sha }}",
+                  short: true
+                }]
+              }]
+            }
+
+      - name: 📊 Update Deployment Dashboard
+        run: |
+          curl -X POST "${{ secrets.DEPLOYMENT_DASHBOARD_WEBHOOK }}" \
+            -H "Content-Type: application/json" \
+            -d '{
+              "environment": "${{ needs.deployment-strategy.outputs.environment }}",
+              "status": "success",
+              "strategy": "${{ needs.deployment-strategy.outputs.strategy }}",
+              "commit": "${{ github.sha }}",
+              "quality_score": ${{ needs.quality-gates.outputs.quality-score }},
+              "timestamp": "'$(date -Iseconds)'"
+            }'

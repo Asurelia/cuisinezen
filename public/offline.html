@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CuisineZen - Hors ligne</title>
+    <meta name="theme-color" content="#16a34a">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #374151;
+            padding: 20px;
+        }
+
+        .offline-container {
+            text-align: center;
+            max-width: 400px;
+            width: 100%;
+            background: white;
+            border-radius: 16px;
+            padding: 40px 30px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+            animation: fadeInUp 0.6s ease-out;
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .offline-icon {
+            width: 80px;
+            height: 80px;
+            margin: 0 auto 20px;
+            background: linear-gradient(135deg, #16a34a, #22c55e);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 40px;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+
+        h1 {
+            font-size: 24px;
+            margin-bottom: 16px;
+            color: #1f2937;
+            font-weight: 600;
+        }
+
+        p {
+            color: #6b7280;
+            line-height: 1.6;
+            margin-bottom: 30px;
+            font-size: 16px;
+        }
+
+        .actions {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #16a34a, #22c55e);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(34, 197, 94, 0.3);
+        }
+
+        .btn-secondary {
+            background: #f3f4f6;
+            color: #374151;
+            border: 1px solid #d1d5db;
+        }
+
+        .btn-secondary:hover {
+            background: #e5e7eb;
+            transform: translateY(-1px);
+        }
+
+        .offline-features {
+            margin-top: 30px;
+            padding-top: 30px;
+            border-top: 1px solid #e5e7eb;
+        }
+
+        .feature-list {
+            list-style: none;
+            text-align: left;
+        }
+
+        .feature-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 8px 0;
+            color: #6b7280;
+            font-size: 14px;
+        }
+
+        .feature-icon {
+            width: 20px;
+            height: 20px;
+            background: #dcfce7;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+        }
+
+        .status-indicator {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 8px 16px;
+            background: #fef3c7;
+            color: #92400e;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            animation: slideInRight 0.5s ease-out;
+        }
+
+        @keyframes slideInRight {
+            from {
+                opacity: 0;
+                transform: translateX(100px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            background: #f59e0b;
+            border-radius: 50%;
+            animation: blink 1.5s infinite;
+        }
+
+        @keyframes blink {
+            0%, 50% { opacity: 1; }
+            51%, 100% { opacity: 0.3; }
+        }
+
+        @media (max-width: 480px) {
+            .offline-container {
+                padding: 30px 20px;
+            }
+            
+            h1 {
+                font-size: 20px;
+            }
+            
+            .offline-icon {
+                width: 60px;
+                height: 60px;
+                font-size: 30px;
+            }
+        }
+
+        .network-status {
+            margin-top: 20px;
+            padding: 12px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        .network-status.online {
+            background: #dcfce7;
+            color: #166534;
+            border: 1px solid #bbf7d0;
+        }
+
+        .network-status.offline {
+            background: #fef2f2;
+            color: #991b1b;
+            border: 1px solid #fecaca;
+        }
+    </style>
+</head>
+<body>
+    <div class="status-indicator">
+        <div class="status-dot"></div>
+        Mode hors ligne
+    </div>
+
+    <div class="offline-container">
+        <div class="offline-icon">
+            🍽️
+        </div>
+        
+        <h1>Vous êtes hors ligne</h1>
+        <p>Pas de connexion internet détectée. Certaines fonctionnalités restent disponibles en mode hors ligne.</p>
+        
+        <div class="actions">
+            <button class="btn btn-primary" onclick="checkConnection()">
+                🔄 Vérifier la connexion
+            </button>
+            <a href="/" class="btn btn-secondary">
+                🏠 Retour à l'accueil
+            </a>
+        </div>
+
+        <div class="network-status" id="networkStatus">
+            <span id="statusText">Vérification de la connexion...</span>
+        </div>
+
+        <div class="offline-features">
+            <h3 style="margin-bottom: 16px; font-size: 16px; color: #374151;">Fonctionnalités disponibles hors ligne :</h3>
+            <ul class="feature-list">
+                <li class="feature-item">
+                    <div class="feature-icon">📋</div>
+                    Consultation de l'inventaire en cache
+                </li>
+                <li class="feature-item">
+                    <div class="feature-icon">👨‍🍳</div>
+                    Recettes sauvegardées
+                </li>
+                <li class="feature-item">
+                    <div class="feature-icon">📊</div>
+                    Analytics en mode lecture seule
+                </li>
+                <li class="feature-item">
+                    <div class="feature-icon">💾</div>
+                    Synchronisation automatique au retour en ligne
+                </li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        let isOnline = navigator.onLine;
+        let retryAttempts = 0;
+        const maxRetries = 3;
+
+        function updateNetworkStatus() {
+            const statusElement = document.getElementById('networkStatus');
+            const statusText = document.getElementById('statusText');
+            
+            if (navigator.onLine) {
+                statusElement.className = 'network-status online';
+                statusText.textContent = '✅ Connexion internet détectée';
+                
+                // Automatically redirect to home after a short delay
+                setTimeout(() => {
+                    window.location.href = '/';
+                }, 2000);
+            } else {
+                statusElement.className = 'network-status offline';
+                statusText.textContent = '❌ Aucune connexion internet';
+            }
+        }
+
+        async function checkConnection() {
+            const statusText = document.getElementById('statusText');
+            statusText.textContent = '🔄 Vérification en cours...';
+            
+            try {
+                // Try to fetch a small resource to test connectivity
+                const response = await fetch('/favicon.ico', {
+                    method: 'HEAD',
+                    cache: 'no-cache'
+                });
+                
+                if (response.ok) {
+                    updateNetworkStatus();
+                    return true;
+                }
+            } catch (error) {
+                console.log('Connection check failed:', error);
+            }
+            
+            retryAttempts++;
+            if (retryAttempts < maxRetries) {
+                statusText.textContent = `❌ Connexion échouée. Nouvelle tentative dans 3s... (${retryAttempts}/${maxRetries})`;
+                setTimeout(checkConnection, 3000);
+            } else {
+                statusText.textContent = '❌ Impossible de se connecter. Veuillez réessayer plus tard.';
+                retryAttempts = 0;
+            }
+            
+            return false;
+        }
+
+        // Listen for online/offline events
+        window.addEventListener('online', updateNetworkStatus);
+        window.addEventListener('offline', updateNetworkStatus);
+
+        // Initial status check
+        updateNetworkStatus();
+        
+        // Periodic connectivity check
+        setInterval(() => {
+            if (!navigator.onLine) {
+                checkConnection();
+            }
+        }, 30000); // Check every 30 seconds
+
+        // Service Worker messaging
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.addEventListener('message', (event) => {
+                if (event.data.type === 'CACHE_UPDATED') {
+                    console.log('Cache updated:', event.data.payload);
+                }
+            });
+        }
+
+        // Keyboard shortcuts
+        document.addEventListener('keydown', (event) => {
+            if (event.key === 'r' && (event.ctrlKey || event.metaKey)) {
+                event.preventDefault();
+                checkConnection();
+            }
+            if (event.key === 'Escape') {
+                window.location.href = '/';
+            }
+        });
+    </script>
+</body>
+</html>

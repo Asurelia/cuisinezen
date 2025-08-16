@@ -14,6 +14,31 @@ export type PerformanceTrace =
   | 'image_upload'
   | 'recipe_creation';
 
+// Core Web Vitals Types
+export interface CoreWebVitals {
+  lcp: number; // Largest Contentful Paint
+  fid: number; // First Input Delay
+  cls: number; // Cumulative Layout Shift
+  fcp: number; // First Contentful Paint
+  ttfb: number; // Time to First Byte
+  tti: number; // Time to Interactive
+}
+
+export interface PerformanceBudget {
+  metric: keyof CoreWebVitals;
+  threshold: number;
+  severity: 'error' | 'warning' | 'info';
+}
+
+export interface PerformanceAlert {
+  metric: string;
+  current: number;
+  threshold: number;
+  severity: 'critical' | 'high' | 'medium' | 'low';
+  timestamp: Date;
+  context: Record<string, any>;
+}
+
 // Service de monitoring des performances
 export class PerformanceService {
   private static instance: PerformanceService;
@@ -233,6 +258,230 @@ export class PerformanceService {
       });
       throw error;
     }
+  }
+
+  // Core Web Vitals monitoring temps réel
+  private coreWebVitals: Partial<CoreWebVitals> = {};
+  private performanceBudgets: PerformanceBudget[] = [
+    { metric: 'lcp', threshold: 2500, severity: 'error' },
+    { metric: 'fid', threshold: 100, severity: 'error' },
+    { metric: 'cls', threshold: 0.1, severity: 'error' },
+    { metric: 'fcp', threshold: 1800, severity: 'warning' },
+    { metric: 'ttfb', threshold: 600, severity: 'warning' },
+    { metric: 'tti', threshold: 3800, severity: 'warning' }
+  ];
+
+  // Initialiser le monitoring Core Web Vitals
+  public initCoreWebVitalsMonitoring(): void {
+    if (typeof window === 'undefined') return;
+
+    // LCP - Largest Contentful Paint
+    this.observeMetric('largest-contentful-paint', (entry: any) => {
+      this.coreWebVitals.lcp = entry.startTime;
+      this.checkPerformanceBudget('lcp', entry.startTime);
+    });
+
+    // FID - First Input Delay
+    this.observeMetric('first-input', (entry: any) => {
+      this.coreWebVitals.fid = entry.processingStart - entry.startTime;
+      this.checkPerformanceBudget('fid', this.coreWebVitals.fid);
+    });
+
+    // CLS - Cumulative Layout Shift
+    this.observeMetric('layout-shift', (entry: any) => {
+      if (!entry.hadRecentInput) {
+        this.coreWebVitals.cls = (this.coreWebVitals.cls || 0) + entry.value;
+        this.checkPerformanceBudget('cls', this.coreWebVitals.cls);
+      }
+    });
+
+    // Navigation timing pour FCP, TTFB, TTI
+    this.observeNavigationTiming();
+  }
+
+  private observeMetric(entryType: string, callback: (entry: any) => void): void {
+    try {
+      if ('PerformanceObserver' in window) {
+        const observer = new PerformanceObserver((list) => {
+          for (const entry of list.getEntries()) {
+            callback(entry);
+          }
+        });
+        observer.observe({ entryTypes: [entryType] });
+      }
+    } catch (error) {
+      console.warn(`Failed to observe ${entryType}:`, error);
+    }
+  }
+
+  private observeNavigationTiming(): void {
+    window.addEventListener('load', () => {
+      const navigation = performance.getEntriesByType('navigation')[0] as PerformanceNavigationTiming;
+      
+      // FCP - First Contentful Paint
+      const paintEntries = performance.getEntriesByType('paint');
+      const fcp = paintEntries.find(entry => entry.name === 'first-contentful-paint');
+      if (fcp) {
+        this.coreWebVitals.fcp = fcp.startTime;
+        this.checkPerformanceBudget('fcp', fcp.startTime);
+      }
+
+      // TTFB - Time to First Byte
+      this.coreWebVitals.ttfb = navigation.responseStart - navigation.requestStart;
+      this.checkPerformanceBudget('ttfb', this.coreWebVitals.ttfb);
+
+      // TTI estimation
+      const tti = this.estimateTTI();
+      this.coreWebVitals.tti = tti;
+      this.checkPerformanceBudget('tti', tti);
+    });
+  }
+
+  private estimateTTI(): number {
+    // TTI simplifiée : DOMContentLoaded + 50ms buffer
+    const navigation = performance.getEntriesByType('navigation')[0] as PerformanceNavigationTiming;
+    return navigation.domContentLoadedEventEnd + 50;
+  }
+
+  private checkPerformanceBudget(metric: keyof CoreWebVitals, value: number): void {
+    const budget = this.performanceBudgets.find(b => b.metric === metric);
+    if (!budget) return;
+
+    if (value > budget.threshold) {
+      const alert: PerformanceAlert = {
+        metric,
+        current: value,
+        threshold: budget.threshold,
+        severity: budget.severity === 'error' ? 'critical' : 
+                 budget.severity === 'warning' ? 'high' : 'medium',
+        timestamp: new Date(),
+        context: {
+          url: window.location.href,
+          userAgent: navigator.userAgent.substring(0, 100),
+          viewport: `${window.innerWidth}x${window.innerHeight}`,
+          connection: (navigator as any).connection?.effectiveType || 'unknown'
+        }
+      };
+
+      this.handlePerformanceAlert(alert);
+    }
+  }
+
+  private async handlePerformanceAlert(alert: PerformanceAlert): Promise<void> {
+    // Log local
+    console.warn(`🚨 Performance Alert: ${alert.metric} = ${alert.current}ms (threshold: ${alert.threshold}ms)`);
+
+    // Envoi vers analytics Firebase
+    if (this.performanceInstance) {
+      const trace = this.startTrace('performance_alert', {
+        metric: alert.metric,
+        severity: alert.severity,
+        exceeded_by: (alert.current - alert.threshold).toString()
+      });
+      this.stopTrace(trace, {
+        alert_value: alert.current,
+        threshold_value: alert.threshold
+      });
+    }
+
+    // Envoi vers endpoint monitoring (si configuré)
+    if (process.env.NEXT_PUBLIC_PERFORMANCE_WEBHOOK) {
+      try {
+        await fetch(process.env.NEXT_PUBLIC_PERFORMANCE_WEBHOOK, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(alert)
+        });
+      } catch (error) {
+        console.warn('Failed to send performance alert:', error);
+      }
+    }
+  }
+
+  // Getter pour Core Web Vitals actuelles
+  public getCoreWebVitals(): Partial<CoreWebVitals> {
+    return { ...this.coreWebVitals };
+  }
+
+  // Performance budget validation
+  public validatePerformanceBudgets(): {
+    passed: boolean;
+    violations: Array<{ metric: string; current: number; threshold: number }>;
+  } {
+    const violations = [];
+    
+    for (const budget of this.performanceBudgets) {
+      const currentValue = this.coreWebVitals[budget.metric];
+      if (currentValue && currentValue > budget.threshold) {
+        violations.push({
+          metric: budget.metric,
+          current: currentValue,
+          threshold: budget.threshold
+        });
+      }
+    }
+
+    return {
+      passed: violations.length === 0,
+      violations
+    };
+  }
+
+  // Performance reporting
+  public async generatePerformanceReport(): Promise<{
+    coreWebVitals: Partial<CoreWebVitals>;
+    budgetValidation: ReturnType<typeof this.validatePerformanceBudgets>;
+    recommendations: string[];
+  }> {
+    const budgetValidation = this.validatePerformanceBudgets();
+    const recommendations = this.generateRecommendations(budgetValidation.violations);
+
+    return {
+      coreWebVitals: this.coreWebVitals,
+      budgetValidation,
+      recommendations
+    };
+  }
+
+  private generateRecommendations(violations: Array<{ metric: string; current: number; threshold: number }>): string[] {
+    const recommendations = [];
+
+    for (const violation of violations) {
+      switch (violation.metric) {
+        case 'lcp':
+          recommendations.push('Optimize images and implement lazy loading for LCP improvement');
+          recommendations.push('Use WebP format and responsive images');
+          recommendations.push('Implement resource preloading for critical content');
+          break;
+        case 'fid':
+          recommendations.push('Split JavaScript bundles to reduce main thread blocking');
+          recommendations.push('Use web workers for heavy computations');
+          recommendations.push('Implement code splitting and lazy loading');
+          break;
+        case 'cls':
+          recommendations.push('Set explicit dimensions for images and ads');
+          recommendations.push('Reserve space for dynamic content');
+          recommendations.push('Use CSS containment and will-change properties');
+          break;
+        case 'fcp':
+          recommendations.push('Optimize critical rendering path');
+          recommendations.push('Inline critical CSS');
+          recommendations.push('Reduce server response time');
+          break;
+        case 'ttfb':
+          recommendations.push('Optimize server performance and database queries');
+          recommendations.push('Use CDN for static assets');
+          recommendations.push('Implement server-side caching');
+          break;
+        case 'tti':
+          recommendations.push('Reduce JavaScript execution time');
+          recommendations.push('Minimize main thread work');
+          recommendations.push('Remove unused code and dependencies');
+          break;
+      }
+    }
+
+    return [...new Set(recommendations)]; // Remove duplicates
   }
 }
 

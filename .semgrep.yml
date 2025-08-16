@@ -1,0 +1,156 @@
+rules:
+  # Security rules for React/Next.js
+  - id: dangerous-react-html
+    patterns:
+      - pattern: dangerouslySetInnerHTML={{__html: $VALUE}}
+    message: "Avoid using dangerouslySetInnerHTML as it can lead to XSS attacks"
+    languages: [typescript, javascript]
+    severity: ERROR
+    
+  - id: hardcoded-secrets
+    patterns:
+      - pattern: |
+          const $VAR = "$SECRET"
+      - metavariable-regex:
+          metavariable: $SECRET
+          regex: (password|secret|key|token|api_key|apikey).*=.*[a-zA-Z0-9]{10,}
+    message: "Potential hardcoded secret detected"
+    languages: [typescript, javascript]
+    severity: ERROR
+    
+  - id: sql-injection
+    patterns:
+      - pattern: |
+          $QUERY = "SELECT * FROM " + $USER_INPUT
+      - pattern: |
+          $QUERY = `SELECT * FROM ${$USER_INPUT}`
+    message: "Potential SQL injection vulnerability"
+    languages: [typescript, javascript]
+    severity: ERROR
+    
+  - id: eval-usage
+    patterns:
+      - pattern: eval($EXPR)
+      - pattern: new Function($EXPR)
+    message: "Use of eval() or Function constructor can lead to code injection"
+    languages: [typescript, javascript]
+    severity: ERROR
+    
+  - id: insecure-random
+    patterns:
+      - pattern: Math.random()
+    message: "Math.random() is not cryptographically secure. Use crypto.randomBytes() instead"
+    languages: [typescript, javascript]
+    severity: WARNING
+    
+  - id: prototype-pollution
+    patterns:
+      - pattern: |
+          $OBJ.__proto__ = $VALUE
+      - pattern: |
+          $OBJ["__proto__"] = $VALUE
+      - pattern: |
+          $OBJ.constructor.prototype = $VALUE
+    message: "Potential prototype pollution vulnerability"
+    languages: [typescript, javascript]
+    severity: ERROR
+    
+  - id: unsafe-regex
+    patterns:
+      - pattern-regex: /\(\.\*\)\+|\(\.\+\)\*|\(\.\*\)\{[0-9]+,\}/
+    message: "Potential ReDoS vulnerability - avoid nested quantifiers in regex"
+    languages: [typescript, javascript]
+    severity: WARNING
+    
+  - id: cors-wildcard
+    patterns:
+      - pattern: |
+          res.header("Access-Control-Allow-Origin", "*")
+      - pattern: |
+          res.setHeader("Access-Control-Allow-Origin", "*")
+    message: "CORS wildcard (*) allows all origins, potential security risk"
+    languages: [typescript, javascript]
+    severity: WARNING
+    
+  - id: missing-csrf-protection
+    patterns:
+      - pattern: |
+          app.use(express.json())
+      - pattern-not: |
+          app.use(csrf())
+    message: "Consider adding CSRF protection"
+    languages: [typescript, javascript]
+    severity: INFO
+    
+  - id: insecure-dependencies
+    patterns:
+      - pattern: |
+          require("$PACKAGE")
+      - metavariable-regex:
+          metavariable: $PACKAGE
+          regex: (lodash|moment|request|node-uuid)
+    message: "Using potentially vulnerable or deprecated package"
+    languages: [typescript, javascript]
+    severity: WARNING
+
+# Firebase specific security rules
+  - id: firebase-admin-key-exposure
+    patterns:
+      - pattern: |
+          const serviceAccount = require("$PATH")
+      - metavariable-regex:
+          metavariable: $PATH
+          regex: .*\.json$
+    message: "Avoid requiring service account keys directly"
+    languages: [typescript, javascript]
+    severity: ERROR
+    
+  - id: firebase-config-exposure
+    patterns:
+      - pattern: |
+          const firebaseConfig = {
+            apiKey: "$KEY",
+            ...
+          }
+      - metavariable-regex:
+          metavariable: $KEY
+          regex: [A-Za-z0-9_-]{30,}
+    message: "Firebase config should use environment variables"
+    languages: [typescript, javascript]
+    severity: WARNING
+    
+  - id: insecure-firebase-rules
+    patterns:
+      - pattern: |
+          allow read, write: if true;
+    message: "Firebase security rules allow unrestricted access"
+    languages: [javascript]
+    severity: ERROR
+
+# Next.js specific security rules
+  - id: next-image-unoptimized
+    patterns:
+      - pattern: |
+          <img src={$SRC} />
+    message: "Use Next.js Image component instead of img tag for optimization and security"
+    languages: [typescript, javascript]
+    severity: INFO
+    
+  - id: next-script-unsafe
+    patterns:
+      - pattern: |
+          <script dangerouslySetInnerHTML={{__html: $HTML}} />
+    message: "Avoid inline scripts, use Next.js Script component with proper strategy"
+    languages: [typescript, javascript]
+    severity: ERROR
+
+# Environment and configuration
+  - id: env-exposure
+    patterns:
+      - pattern: |
+          console.log(process.env)
+      - pattern: |
+          console.log(process.env.$VAR)
+    message: "Avoid logging environment variables"
+    languages: [typescript, javascript]
+    severity: WARNING

@@ -11,7 +11,7 @@ import {
 } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { OptimizedImage } from '@/components/ui/optimized-image';
+import SimpleImage from '@/components/ui/simple-image';
 import type { Product, Batch } from '@/lib/types';
 import { getBlurPlaceholder } from '@/lib/image-utils';
 import { Separator } from './ui/separator';
@@ -80,7 +80,7 @@ export function ProductCard({ product, onEdit, onDelete }: ProductCardProps) {
   return (
     <Card className="flex h-full flex-col overflow-hidden transition-shadow duration-300 hover:shadow-lg animate-fade-in">
       <CardHeader className="relative p-0">
-        <OptimizedImage
+        <SimpleImage
           src={product.imageUrl || `https://placehold.co/400x300.png?text=${encodeURIComponent(product.name)}`}
           alt={product.name}
           width={400}

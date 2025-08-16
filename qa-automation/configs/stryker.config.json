@@ -1,0 +1,57 @@
+{
+  "$schema": "./node_modules/@stryker-mutator/core/schema/stryker-schema.json",
+  "packageManager": "npm",
+  "reporters": ["html", "clear-text", "progress", "json"],
+  "testRunner": "vitest",
+  "coverageAnalysis": "perTest",
+  "mutate": [
+    "src/components/product-card.tsx",
+    "src/components/recipe-card.tsx",
+    "src/components/inventory-list.tsx",
+    "src/components/barcode-scanner-dialog.tsx",
+    "src/components/analytics/**/*.tsx",
+    "src/hooks/*.ts",
+    "src/lib/*.ts",
+    "src/services/*.ts",
+    "!src/**/*.test.*",
+    "!src/**/*.spec.*",
+    "!src/**/*.d.ts"
+  ],
+  "thresholds": {
+    "high": 80,
+    "low": 70,
+    "break": 60
+  },
+  "plugins": [
+    "@stryker-mutator/vitest-runner",
+    "@stryker-mutator/typescript-checker"
+  ],
+  "checkers": ["typescript"],
+  "tsconfigFile": "../../tsconfig.json",
+  "htmlReporter": {
+    "baseDir": "../reports/mutation"
+  },
+  "jsonReporter": {
+    "fileName": "../reports/mutation/mutation-report.json"
+  },
+  "timeoutMS": 60000,
+  "timeoutFactor": 2,
+  "maxConcurrentTestRunners": 4,
+  "disableTypeChecks": false,
+  "ignorePatterns": [
+    "dist",
+    "build",
+    "node_modules",
+    "qa-automation",
+    "coverage",
+    "*.config.*"
+  ],
+  "mutator": {
+    "name": "typescript",
+    "excludedMutations": [
+      "StringLiteral",
+      "BooleanLiteral",
+      "ArrayDeclaration"
+    ]
+  }
+}

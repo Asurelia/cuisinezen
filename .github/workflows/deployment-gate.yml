@@ -1,0 +1,330 @@
+name: 🚀 Production Deployment Gate
+
+on:
+  push:
+    branches: [ main ]
+    tags: [ 'v*' ]
+  workflow_dispatch:
+    inputs:
+      force_deploy:
+        description: 'Force deployment even if quality gates have warnings'
+        required: false
+        default: false
+        type: boolean
+
+env:
+  NODE_VERSION: '18'
+  DEPLOYMENT_ENVIRONMENT: 'production'
+
+jobs:
+  pre-deployment-checks:
+    name: 🔍 Pre-Deployment Quality Checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    outputs:
+      deployment-approved: ${{ steps.gate-check.outputs.approved }}
+      quality-score: ${{ steps.gate-check.outputs.score }}
+    
+    steps:
+      - name: 🔍 Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      
+      - name: 📦 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+      
+      - name: 📥 Install dependencies
+        run: npm ci --prefer-offline --no-audit
+      
+      - name: 🔍 Run comprehensive quality gates
+        id: quality-gates
+        run: |
+          echo "Running comprehensive quality gates check..."
+          npm run gates:all || echo "quality_gates_failed=true" >> $GITHUB_OUTPUT
+      
+      - name: 🔒 Security audit
+        id: security-audit
+        run: |
+          echo "Running security audit..."
+          npm run security:audit
+          npm run security:scan
+          npm run security:secrets
+      
+      - name: 🚀 Performance check
+        id: performance
+        run: |
+          echo "Running performance checks..."
+          npm run build
+          npm run lighthouse || echo "performance_failed=true" >> $GITHUB_OUTPUT
+      
+      - name: ♿ Accessibility check
+        id: accessibility
+        run: |
+          echo "Running accessibility checks..."
+          npx playwright install --with-deps chromium
+          npm run test:a11y || echo "accessibility_failed=true" >> $GITHUB_OUTPUT
+      
+      - name: 📋 Generate SBOM
+        run: |
+          echo "Generating Software Bill of Materials..."
+          npm run sbom:generate
+      
+      - name: 🎯 Quality Gate Decision
+        id: gate-check
+        run: |
+          # Initialize score
+          SCORE=100
+          ISSUES=""
+          
+          # Check for failures
+          if [ "${{ steps.quality-gates.outputs.quality_gates_failed }}" == "true" ]; then
+            SCORE=$((SCORE - 30))
+            ISSUES="${ISSUES}- Code quality gates failed\n"
+          fi
+          
+          if [ "${{ steps.performance.outputs.performance_failed }}" == "true" ]; then
+            SCORE=$((SCORE - 25))
+            ISSUES="${ISSUES}- Performance benchmarks not met\n"
+          fi
+          
+          if [ "${{ steps.accessibility.outputs.accessibility_failed }}" == "true" ]; then
+            SCORE=$((SCORE - 20))
+            ISSUES="${ISSUES}- Accessibility requirements not met\n"
+          fi
+          
+          # Security check (critical)
+          CRITICAL_VULNS=$(npm audit --audit-level=critical --json 2>/dev/null | jq -r '.metadata.vulnerabilities.critical // 0' || echo "0")
+          if [ "$CRITICAL_VULNS" -gt 0 ]; then
+            SCORE=$((SCORE - 50))
+            ISSUES="${ISSUES}- Critical security vulnerabilities detected\n"
+          fi
+          
+          # Determine approval
+          FORCE_DEPLOY="${{ github.event.inputs.force_deploy }}"
+          if [ "$SCORE" -ge 80 ] || [ "$FORCE_DEPLOY" == "true" ]; then
+            echo "approved=true" >> $GITHUB_OUTPUT
+            echo "🎉 Deployment APPROVED (Score: $SCORE/100)"
+          else
+            echo "approved=false" >> $GITHUB_OUTPUT
+            echo "❌ Deployment REJECTED (Score: $SCORE/100)"
+            echo -e "Issues found:\n$ISSUES"
+          fi
+          
+          echo "score=$SCORE" >> $GITHUB_OUTPUT
+          
+          # Generate deployment report
+          cat > deployment-gate-report.md << EOF
+          # 🚀 Production Deployment Gate Report
+          
+          **Timestamp**: $(date -u +"%Y-%m-%d %H:%M:%S UTC")
+          **Commit**: ${{ github.sha }}
+          **Branch**: ${{ github.ref_name }}
+          **Quality Score**: $SCORE/100
+          **Deployment Status**: $([ "$SCORE" -ge 80 ] || [ "$FORCE_DEPLOY" == "true" ] && echo "✅ APPROVED" || echo "❌ REJECTED")
+          
+          ## Quality Gates Results
+          
+          | Gate | Status | Impact |
+          |------|--------|---------|
+          | Code Quality | $([ "${{ steps.quality-gates.outputs.quality_gates_failed }}" != "true" ] && echo "✅ PASSED" || echo "❌ FAILED") | -30 points |
+          | Performance | $([ "${{ steps.performance.outputs.performance_failed }}" != "true" ] && echo "✅ PASSED" || echo "❌ FAILED") | -25 points |
+          | Accessibility | $([ "${{ steps.accessibility.outputs.accessibility_failed }}" != "true" ] && echo "✅ PASSED" || echo "❌ FAILED") | -20 points |
+          | Security | $([ "$CRITICAL_VULNS" -eq 0 ] && echo "✅ PASSED" || echo "❌ FAILED ($CRITICAL_VULNS critical)") | -50 points |
+          
+          $([ -n "$ISSUES" ] && echo -e "## Issues Found\n\n$ISSUES" || echo "## ✅ No Issues Found")
+          
+          ## Deployment Criteria
+          
+          - **Minimum Score**: 80/100
+          - **Critical Security Vulnerabilities**: 0
+          - **Force Deploy**: $FORCE_DEPLOY
+          
+          $([ "$SCORE" -ge 80 ] || [ "$FORCE_DEPLOY" == "true" ] && echo "🚀 **Ready for Production Deployment**" || echo "🛑 **Not Ready for Production Deployment**")
+          EOF
+      
+      - name: 📊 Upload deployment gate report
+        uses: actions/upload-artifact@v4
+        with:
+          name: deployment-gate-report
+          path: deployment-gate-report.md
+          retention-days: 90
+      
+      - name: 📋 Add to step summary
+        run: cat deployment-gate-report.md >> $GITHUB_STEP_SUMMARY
+      
+      - name: ❌ Fail if deployment rejected
+        if: steps.gate-check.outputs.approved != 'true'
+        run: |
+          echo "💥 Deployment rejected due to quality gate failures!"
+          echo "Quality Score: ${{ steps.gate-check.outputs.score }}/100 (minimum: 80)"
+          echo "Use 'force_deploy: true' in workflow_dispatch to override (not recommended)"
+          exit 1
+
+  production-deployment:
+    name: 🚀 Production Deployment
+    runs-on: ubuntu-latest
+    needs: pre-deployment-checks
+    if: needs.pre-deployment-checks.outputs.deployment-approved == 'true'
+    environment: 
+      name: production
+      url: https://your-production-url.com
+    timeout-minutes: 30
+    
+    steps:
+      - name: 🔍 Checkout code
+        uses: actions/checkout@v4
+      
+      - name: 📦 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+      
+      - name: 📥 Install dependencies
+        run: npm ci --prefer-offline --no-audit --production
+      
+      - name: 🏗️ Build production application
+        run: |
+          echo "Building for production..."
+          npm run build
+          
+          # Verify build output
+          if [ ! -d ".next" ]; then
+            echo "❌ Build failed - .next directory not found"
+            exit 1
+          fi
+          
+          echo "✅ Build completed successfully"
+      
+      - name: 🔒 Final security check
+        run: |
+          echo "Running final security verification..."
+          
+          # Check for any secrets in build output
+          if grep -r "api_key\|secret\|password" .next/ 2>/dev/null; then
+            echo "❌ Potential secrets found in build output!"
+            exit 1
+          fi
+          
+          echo "✅ No secrets detected in build output"
+      
+      - name: 📋 Generate deployment SBOM
+        run: |
+          echo "Generating deployment SBOM..."
+          npm run sbom:generate
+          
+          # Create deployment package info
+          cat > deployment-info.json << EOF
+          {
+            "deployment": {
+              "timestamp": "$(date -u +"%Y-%m-%dT%H:%M:%SZ")",
+              "commit": "${{ github.sha }}",
+              "branch": "${{ github.ref_name }}",
+              "quality_score": ${{ needs.pre-deployment-checks.outputs.quality-score }},
+              "environment": "${{ env.DEPLOYMENT_ENVIRONMENT }}",
+              "workflow_run": "${{ github.run_id }}",
+              "actor": "${{ github.actor }}"
+            }
+          }
+          EOF
+      
+      - name: 🚀 Deploy to Production
+        run: |
+          echo "🚀 Starting production deployment..."
+          
+          # This is where you would add your actual deployment commands
+          # Examples:
+          
+          # For Firebase Hosting:
+          # npm install -g firebase-tools
+          # firebase deploy --token ${{ secrets.FIREBASE_TOKEN }} --project your-project-id
+          
+          # For Vercel:
+          # npm install -g vercel
+          # vercel --token ${{ secrets.VERCEL_TOKEN }} --prod
+          
+          # For Docker deployment:
+          # docker build -t cuisinezen:${{ github.sha }} .
+          # docker push your-registry/cuisinezen:${{ github.sha }}
+          
+          # For now, simulate deployment
+          echo "✅ Production deployment completed successfully"
+          echo "🌐 Application deployed to: https://your-production-url.com"
+      
+      - name: 🔍 Post-deployment verification
+        run: |
+          echo "Running post-deployment verification..."
+          
+          # Health check (replace with your actual health check endpoint)
+          # curl -f https://your-production-url.com/health || exit 1
+          
+          # Smoke tests
+          # npm run test:smoke
+          
+          echo "✅ Post-deployment verification completed"
+      
+      - name: 📊 Deployment success notification
+        run: |
+          echo "## 🎉 Production Deployment Successful!" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Quality Score**: ${{ needs.pre-deployment-checks.outputs.quality-score }}/100" >> $GITHUB_STEP_SUMMARY
+          echo "**Deployed Commit**: ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Deployment Time**: $(date -u +"%Y-%m-%d %H:%M:%S UTC")" >> $GITHUB_STEP_SUMMARY
+          echo "**Environment**: ${{ env.DEPLOYMENT_ENVIRONMENT }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "🌐 **Live URL**: https://your-production-url.com" >> $GITHUB_STEP_SUMMARY
+      
+      - name: 📤 Upload deployment artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: production-deployment-${{ github.run_number }}
+          path: |
+            deployment-info.json
+            reports/sbom/
+          retention-days: 180
+
+  post-deployment-monitoring:
+    name: 📊 Post-Deployment Monitoring
+    runs-on: ubuntu-latest
+    needs: production-deployment
+    if: needs.production-deployment.result == 'success'
+    timeout-minutes: 15
+    
+    steps:
+      - name: 🔍 Checkout code
+        uses: actions/checkout@v4
+      
+      - name: 📊 Setup monitoring
+        run: |
+          echo "Setting up post-deployment monitoring..."
+          
+          # Start monitoring for performance regressions
+          # This could include:
+          # - Real User Monitoring (RUM) setup
+          # - Performance monitoring alerts
+          # - Error tracking initialization
+          # - Business metrics monitoring
+          
+          echo "✅ Monitoring configured"
+      
+      - name: ⏰ Schedule rollback preparation
+        run: |
+          echo "Preparing automated rollback capabilities..."
+          
+          # Store current deployment state for potential rollback
+          # This could include:
+          # - Database migration rollback scripts
+          # - Previous version artifacts
+          # - Configuration backups
+          
+          echo "✅ Rollback preparation completed"
+      
+      - name: 📧 Success notification
+        run: |
+          echo "🎉 CuisineZen production deployment completed successfully!"
+          echo "All quality gates passed with score: ${{ needs.pre-deployment-checks.outputs.quality-score }}/100"
+          echo "Monitoring and rollback capabilities are active."

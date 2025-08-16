@@ -577,17 +577,9 @@ const SidebarMenuButton = React.forwardRef<
       }
     }
 
-    return (
-      <Tooltip>
-        <TooltipTrigger asChild>{button}</TooltipTrigger>
-        <TooltipContent
-          side="right"
-          align="center"
-          hidden={state !== "collapsed" || isMobile}
-          {...tooltip}
-        />
-      </Tooltip>
-    )
+    // Tooltips temporairement désactivés pour éviter la boucle infinie React
+    // TODO: Réactiver après correction du problème @radix-ui/react-compose-refs
+    return button
   }
 )
 SidebarMenuButton.displayName = "SidebarMenuButton"
